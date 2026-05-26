@@ -20,6 +20,10 @@ metadata:
     project: {{ $.Values.global.projectName }}
     nf: {{ .name }}
 spec:
+  {{- if and $.Values.isPfcpNeeded $.Values.global.smf.multus.enabled }}
+  strategy:
+    type: Recreate
+  {{- end }}
   {{- if not .autoscaling.enabled }}
   replicas: {{ .replicaCount }}
   {{- end }}

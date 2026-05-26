@@ -11,7 +11,7 @@ not require `git submodule update` or network access to fetch chart files.
 - `BranchingUPF` (`iupf1`): N3-facing intermediate UPF and UL classifier.
 - `AnchorUPF1` (`psaupf1`): default anchor UPF for `10.60.0.0/17`.
 - `AnchorUPF2` (`psaupf2`): edge anchor UPF for `10.60.128.0/17` and selected destination traffic.
-- `AMF`: exposes N2 through Multus. `global.amf.service.ngap.enabled` is disabled by default in this overlay.
+- `AMF`: exposes N2 through NodePort for external gNBs on the same reachable node network.
 
 ## Required Node Setup
 
@@ -44,6 +44,9 @@ Edit `values.yaml` before production use:
 
 - `global.amf.multus.n2network.masterIf`: host interface reachable by the gNB N2 network. Defaults to `wlp128s0` for the current host.
 - `global.upf.multus.n3network.masterIf`: host interface reachable by the gNB N3 network.
+- `global.amf.service.ngap.nodeport`: external SCTP NodePort for NGAP. Defaults to `31412`.
+- `global.upf.service.gtpu.advertiseAddress`: Kubernetes node IP advertised to gNBs for N3 GTP-U when using NodePort.
+- `free5gc-upf.iupf1.service.gtpu.nodePort`: external UDP NodePort for N3 GTP-U. Defaults to `32152`; the Service port remains `2152/UDP`.
 - `global.smf.multus.n4network` and `global.upf.multus.n4network`: PFCP network.
 - `global.upf.multus.n6network`: DN or edge service network.
 - `global.upf.multus.n9network`: UPF-to-UPF N9 network.
@@ -93,7 +96,16 @@ free5GC.
 ## Deploy
 
 ```bash
+./deploy/ulcl-multus/build-images.sh
 ./deploy/ulcl-multus/deploy.sh
+```
+
+The image build uses `docker/free5gc/Dockerfile`, whose builder and runtime
+stages are based on Ubuntu 22.04. If the Kubernetes node uses containerd
+directly, import the images into the `k8s.io` namespace:
+
+```bash
+IMPORT_TO_CONTAINERD=true ./deploy/ulcl-multus/build-images.sh
 ```
 
 Useful overrides:
@@ -116,7 +128,8 @@ Expected results:
 - All pods are `Running`.
 - SMF logs show PFCP association with all UPFs.
 - `ip_forward` returns `1` in UPF pods.
-- gNB completes NG Setup against the AMF N2 Multus address.
+- gNB completes NG Setup against `<node-ip>:31412/SCTP`.
+- gNB sends N3 GTP-U to `<node-ip>:32152/UDP`, while the UPF Service port is `2152/UDP`.
 - UE registration and PDU session establishment succeed.
 - Traffic to destinations in `ueRoutingInfo.specificPath` goes through the edge anchor UPF.
 

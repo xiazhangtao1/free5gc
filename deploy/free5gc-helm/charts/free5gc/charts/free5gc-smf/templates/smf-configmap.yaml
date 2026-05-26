@@ -95,7 +95,11 @@ data:
             interfaces:
               - interfaceType: N3
                 endpoints:
+{{- if and $.Values.global.upf.service.gtpu.enabled $.Values.global.upf.service.gtpu.advertiseAddress }}
+                  - {{ $.Values.global.upf.service.gtpu.advertiseAddress }}
+{{- else }}
                   - {{ $.Values.global.upf.multus.iupf1.n3if.ipAddress }}
+{{- end }}
                 networkInstances: 
                   - internet
               - interfaceType: N9

@@ -21,6 +21,10 @@ metadata:
     project: {{ $.Values.global.projectName }}
     nf: {{ .name }}
 spec:
+  {{- if $.Values.global.upf.multus.enabled }}
+  strategy:
+    type: Recreate
+  {{- end }}
   {{- if not .autoscaling.enabled }}
   replicas: {{ .replicaCount }}
   {{- end }}
@@ -77,6 +81,11 @@ spec:
         - name: n4
           containerPort: 8805
           protocol: UDP
+        {{- if .service.gtpu.enabled }}
+        - name: n3
+          containerPort: {{ .service.gtpu.port }}
+          protocol: {{ .service.gtpu.protocol }}
+        {{- end }}
         command:
           - "/sbin/tini"
           - "--"

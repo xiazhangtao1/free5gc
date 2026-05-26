@@ -32,5 +32,28 @@ spec:
     {{- include "free5gc-upf.selectorLabels" $ | nindent 4 }}
     project: {{ $.Values.global.projectName }}
     nf: {{ .name }}
+{{- if .service.gtpu.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "free5gc-upf.fullname" $ }}-{{ .name }}-gtpu
+  labels:
+    {{- include "free5gc-upf.labels" $ | nindent 4 }}
+    project: {{ $.Values.global.projectName }}
+    nf: {{ .name }}
+spec:
+  type: {{ .service.gtpu.type }}
+  ports:
+    - port: {{ .service.gtpu.port }}
+      targetPort: {{ .service.gtpu.port }}
+      nodePort: {{ .service.gtpu.nodePort }}
+      protocol: {{ .service.gtpu.protocol }}
+      name: gtpu
+  selector:
+    {{- include "free5gc-upf.selectorLabels" $ | nindent 4 }}
+    project: {{ $.Values.global.projectName }}
+    nf: {{ .name }}
+{{- end }}
 {{- end }}
 {{- end }}

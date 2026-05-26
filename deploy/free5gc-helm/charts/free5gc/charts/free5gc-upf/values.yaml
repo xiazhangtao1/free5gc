@@ -20,6 +20,14 @@ global:
   userPlaneArchitecture: ulcl  # possible values are "single" and "ulcl"
   uesubnet: 10.60.0.0/16
   upf:
+    service:
+      gtpu:
+        enabled: false
+        type: NodePort
+        port: 2152
+        nodePort: 32152
+        protocol: UDP
+        advertiseAddress: ""
     multus:
       enabled: false
       # Static IP configurations for UPF instances (used when multus.enabled=true)
@@ -109,6 +117,12 @@ upf:
     pfcp:
       port: 8805
       protocol: UDP
+    gtpu:
+      enabled: false
+      type: NodePort
+      port: 2152
+      nodePort: 32152
+      protocol: UDP
 
   podAnnotations: {}
     # additional annotations
@@ -192,6 +206,12 @@ psaupf1:
     pfcp:
       port: 8805
       protocol: UDP
+    gtpu:
+      enabled: false
+      type: NodePort
+      port: 2152
+      nodePort: 32152
+      protocol: UDP
 
   podAnnotations: {}
     # additional annotations
@@ -274,6 +294,12 @@ psaupf2:
     pfcp:
       port: 8805
       protocol: UDP
+    gtpu:
+      enabled: false
+      type: NodePort
+      port: 2152
+      nodePort: 32153
+      protocol: UDP
 
   podAnnotations: {}
     # additional annotations
@@ -355,6 +381,12 @@ iupf1:
   service:
     pfcp:
       port: 8805
+      protocol: UDP
+    gtpu:
+      enabled: false
+      type: NodePort
+      port: 2152
+      nodePort: 32154
       protocol: UDP
 
   podAnnotations: {}

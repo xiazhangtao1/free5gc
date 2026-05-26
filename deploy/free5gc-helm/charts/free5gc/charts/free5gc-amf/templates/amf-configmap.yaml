@@ -28,7 +28,9 @@ data:
         {{- .configuration.serviceNameList | nindent 8 }}
 
       ngapIpList:
-{{- if $.Values.global.amf.multus.enabled }}
+{{- if $.Values.global.amf.service.ngap.enabled }}
+        - 0.0.0.0  # Bind all Pod interfaces so NodePort can forward external gNB SCTP traffic
+{{- else if $.Values.global.amf.multus.enabled }}
         - {{ $.Values.global.amf.multus.n2if.ipAddress }}
 {{- else }}
         - 0.0.0.0  # Bind to all interfaces for cloud-native deployment
