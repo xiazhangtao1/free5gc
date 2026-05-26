@@ -71,8 +71,6 @@ spec:
           containerPort: {{ $.Values.nssf.configuration.metrics.port }}
         {{- end }}
         command:
-          - "/sbin/tini"
-          - "--"
           - "./nssf"
         args:
           - "-c"

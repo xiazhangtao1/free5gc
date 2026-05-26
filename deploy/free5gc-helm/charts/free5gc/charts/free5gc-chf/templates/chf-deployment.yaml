@@ -61,8 +61,6 @@ spec:
           containerPort: {{ $.Values.chf.configuration.metrics.port }}
         {{- end }}
         command:
-          - "/sbin/tini"
-          - "--"
           - "./chf"
         args:
           - "-c"

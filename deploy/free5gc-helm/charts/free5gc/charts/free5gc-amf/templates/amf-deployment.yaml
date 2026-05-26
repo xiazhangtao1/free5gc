@@ -88,8 +88,6 @@ spec:
           containerPort: {{ $.Values.amf.configuration.metrics.port }}
         {{- end }}
         command:
-          - "/sbin/tini"
-          - "--"
           - "./amf"
         args:
           - "-c"

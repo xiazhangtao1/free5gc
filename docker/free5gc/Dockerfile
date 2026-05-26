@@ -44,7 +44,8 @@ WORKDIR /free5gc
 COPY --from=builder /src/free5gc/bin/${NF} /free5gc/${NF}
 COPY cert /free5gc/cert
 
-RUN chmod +x "/free5gc/${NF}"
+RUN chmod +x "/free5gc/${NF}" \
+    && ln -sf /usr/bin/tini /sbin/tini
 
-ENTRYPOINT ["/sbin/tini", "--"]
+ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["sh", "-c", "exec /free5gc/${NF}"]

@@ -71,8 +71,6 @@ spec:
           containerPort: {{ $.Values.udm.configuration.metrics.port }}
         {{- end }}
         command:
-          - "/sbin/tini"
-          - "--"
           - "./udm"
         args:
           - "-c"

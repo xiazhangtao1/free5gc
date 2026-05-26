@@ -88,8 +88,6 @@ spec:
           containerPort: {{ $.Values.smf.configuration.metrics.port }}
         {{- end }}
         command:
-          - "/sbin/tini"
-          - "--"
           - "/bin/sh"
           - "{{ .volume.mount }}/wrapper.sh"
         env:

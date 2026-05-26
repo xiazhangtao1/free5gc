@@ -77,8 +77,7 @@ spec:
           containerPort: 8805
           protocol: UDP
         command:
-          - "/sbin/tini"
-          - "--"
+          - "/bin/sh"
           - "{{ .volume.mount }}/wrapper.sh"
         {{- if .readinessProbe.enabled }}
         readinessProbe:

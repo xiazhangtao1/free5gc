@@ -72,8 +72,6 @@ spec:
           containerPort: {{ $.Values.nrf.configuration.metrics.port }}
         {{- end }}
         command:
-          - "/sbin/tini"
-          - "--"
           - "./nrf"
         args:
           - "-c"

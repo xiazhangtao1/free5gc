@@ -51,8 +51,6 @@ spec:
         ports:
         - containerPort: {{ .service.port }}
         command:
-          - "/sbin/tini"
-          - "--"
           - "./nef"
         args:
           - "-c"

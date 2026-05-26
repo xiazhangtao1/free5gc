@@ -63,8 +63,6 @@ spec:
         - containerPort: {{ .service.port }}
         - containerPort: {{ $.Values.global.webui.service.port }}
         command:
-          - "/sbin/tini"
-          - "--"
           - "./webui"
         args:
           - "-c"

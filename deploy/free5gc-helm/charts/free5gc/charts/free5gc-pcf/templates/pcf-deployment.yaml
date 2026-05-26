@@ -72,8 +72,6 @@ spec:
           containerPort: {{ $.Values.pcf.configuration.metrics.port }}
         {{- end }}
         command:
-          - "/sbin/tini"
-          - "--"
           - "./pcf"
         args:
           - "-c"

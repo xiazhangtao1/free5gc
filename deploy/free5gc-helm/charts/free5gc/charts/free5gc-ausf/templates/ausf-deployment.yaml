@@ -71,8 +71,6 @@ spec:
           containerPort: {{ $.Values.ausf.configuration.metrics.port }}
         {{- end }}
         command:
-          - "/sbin/tini"
-          - "--"
           - "./ausf"
         args:
           - "-c"
