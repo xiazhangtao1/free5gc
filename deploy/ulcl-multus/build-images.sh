@@ -8,16 +8,39 @@ BUILDER="${BUILDER:-docker}"
 IMPORT_TO_CONTAINERD="${IMPORT_TO_CONTAINERD:-false}"
 NFS="${NFS:-amf ausf chf nef nrf nssf pcf smf udm udr upf}"
 DOCKER_BUILD_ARGS="${DOCKER_BUILD_ARGS:-}"
+INIT_SUBMODULES="${INIT_SUBMODULES:-false}"
 
 if ! command -v "$BUILDER" >/dev/null 2>&1; then
   echo "image builder '$BUILDER' not found" >&2
   exit 1
 fi
 
+echo "NFS=$NFS"
+echo "TAG=$TAG"
+echo "BUILDER=$BUILDER"
+echo "DOCKER_BUILD_ARGS=$DOCKER_BUILD_ARGS"
+echo "IMPORT_TO_CONTAINERD=$IMPORT_TO_CONTAINERD"
+echo "INIT_SUBMODULES=$INIT_SUBMODULES"
+
 for nf in $NFS; do
-  if [ ! -d "$ROOT_DIR/NFs/$nf/cmd" ]; then
-    echo "missing source for NFs/$nf; run: git submodule update --init --recursive" >&2
+  if [ "$nf" = "webui" ] || [ "$nf" = "webconsole" ]; then
+    echo "webui is built from the webconsole submodule and is not supported by this NF Dockerfile yet" >&2
+    echo "remove webui from NFS, or keep using the upstream free5gc/webui image for now" >&2
     exit 1
+  fi
+
+  if [ ! -d "$ROOT_DIR/NFs/$nf/cmd" ]; then
+    if [ "$INIT_SUBMODULES" = "true" ]; then
+      echo "initializing missing submodule NFs/$nf"
+      git -C "$ROOT_DIR" submodule update --init --recursive "NFs/$nf"
+    fi
+
+    if [ ! -d "$ROOT_DIR/NFs/$nf/cmd" ]; then
+      echo "missing source for NFs/$nf" >&2
+      echo "run: git submodule update --init --recursive NFs/$nf" >&2
+      echo "or run this script with INIT_SUBMODULES=true" >&2
+      exit 1
+    fi
   fi
 done
 
