@@ -45,8 +45,9 @@ Edit `values.yaml` before production use:
 - `global.amf.multus.n2network.masterIf`: host interface reachable by the gNB N2 network. Defaults to `wlp128s0` for the current host.
 - `global.upf.multus.n3network.masterIf`: host interface reachable by the gNB N3 network.
 - `global.amf.service.ngap.nodeport`: external SCTP NodePort for NGAP. Defaults to `31412`.
-- `global.upf.service.gtpu.advertiseAddress`: Kubernetes node IP advertised to gNBs for N3 GTP-U when using NodePort.
-- `free5gc-upf.iupf1.service.gtpu.nodePort`: external UDP NodePort for N3 GTP-U. Defaults to `32152`; the Service port remains `2152/UDP`.
+- `global.upf.service.gtpu.advertiseAddress`: Kubernetes node IP advertised to gNBs for N3 GTP-U.
+- `free5gc-upf.iupf1.service.gtpu.nodePort`: diagnostic UDP NodePort for N3 GTP-U. Defaults to `32152`; the Service port remains `2152/UDP`.
+- `free5gc-upf.iupf1.service.gtpu.hostPort`: host UDP port for standards-compliant external gNB N3 traffic. Defaults to `2152` in this overlay because gNBs normally send GTP-U to UDP/2152.
 - `global.smf.multus.n4network` and `global.upf.multus.n4network`: PFCP network.
 - `global.upf.multus.n6network`: DN or edge service network.
 - `global.upf.multus.n9network`: UPF-to-UPF N9 network.
@@ -129,7 +130,7 @@ Expected results:
 - SMF logs show PFCP association with all UPFs.
 - `ip_forward` returns `1` in UPF pods.
 - gNB completes NG Setup against `<node-ip>:31412/SCTP`.
-- gNB sends N3 GTP-U to `<node-ip>:32152/UDP`, while the UPF Service port is `2152/UDP`.
+- gNB sends N3 GTP-U to `<node-ip>:2152/UDP`. The `32152/UDP` NodePort is also present for diagnostics or non-standard clients that can target a custom GTP-U port.
 - UE registration and PDU session establishment succeed.
 - Traffic to destinations in `ueRoutingInfo.specificPath` goes through the edge anchor UPF.
 

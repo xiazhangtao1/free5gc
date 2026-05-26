@@ -28,6 +28,9 @@ global:
         nodePort: 32152
         protocol: UDP
         advertiseAddress: ""
+        hostPort:
+          enabled: false
+          port: 2152
     multus:
       enabled: false
       # Static IP configurations for UPF instances (used when multus.enabled=true)
@@ -123,6 +126,9 @@ upf:
       port: 2152
       nodePort: 32152
       protocol: UDP
+      hostPort:
+        enabled: false
+        port: 2152
 
   podAnnotations: {}
     # additional annotations
@@ -212,6 +218,9 @@ psaupf1:
       port: 2152
       nodePort: 32152
       protocol: UDP
+      hostPort:
+        enabled: false
+        port: 2152
 
   podAnnotations: {}
     # additional annotations
@@ -300,6 +309,9 @@ psaupf2:
       port: 2152
       nodePort: 32153
       protocol: UDP
+      hostPort:
+        enabled: false
+        port: 2152
 
   podAnnotations: {}
     # additional annotations
@@ -388,6 +400,9 @@ iupf1:
       port: 2152
       nodePort: 32154
       protocol: UDP
+      hostPort:
+        enabled: false
+        port: 2152
 
   podAnnotations: {}
     # additional annotations

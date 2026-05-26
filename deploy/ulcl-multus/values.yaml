@@ -64,6 +64,9 @@ global:
         port: 2152
         nodePort: 32152
         protocol: UDP
+        hostPort:
+          enabled: true
+          port: 2152
         # Set this to the Kubernetes node IP reachable by external same-L2 gNBs.
         advertiseAddress: 192.168.25.124
     multus:
@@ -205,6 +208,9 @@ free5gc-upf:
         port: 2152
         nodePort: 32152
         protocol: UDP
+        hostPort:
+          enabled: true
+          port: 2152
     podSecurityContext:
       sysctls: []
     securityContext:

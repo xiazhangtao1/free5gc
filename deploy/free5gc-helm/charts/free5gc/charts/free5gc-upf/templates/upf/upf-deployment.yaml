@@ -80,6 +80,9 @@ spec:
         - name: n3
           containerPort: {{ .service.gtpu.port }}
           protocol: {{ .service.gtpu.protocol }}
+          {{- if .service.gtpu.hostPort.enabled }}
+          hostPort: {{ .service.gtpu.hostPort.port }}
+          {{- end }}
         {{- end }}
         command: ["{{ .volume.mount }}/wrapper.sh"]
         {{- if .readinessProbe.enabled }}
