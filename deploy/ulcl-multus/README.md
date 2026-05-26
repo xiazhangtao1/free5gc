@@ -3,6 +3,9 @@
 This directory contains the project overlay for deploying free5GC on Kubernetes
 with UL-CL enabled.
 
+The required Helm chart is vendored in `deploy/free5gc-helm`; deployment does
+not require `git submodule update` or network access to fetch chart files.
+
 ## Topology
 
 - `BranchingUPF` (`iupf1`): N3-facing intermediate UPF and UL classifier.

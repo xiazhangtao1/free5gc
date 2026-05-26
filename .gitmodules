@@ -43,6 +43,3 @@
 [submodule "NFs/bsf"]
 	path = NFs/bsf
 	url = https://github.com/free5gc/bsf.git
-[submodule "deploy/free5gc-helm"]
-	path = deploy/free5gc-helm
-	url = https://github.com/free5gc/free5gc-helm.git
