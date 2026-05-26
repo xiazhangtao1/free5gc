@@ -1,0 +1,220 @@
+# Project overlay for deploying free5GC with UL-CL on Kubernetes.
+# Adjust the interface names and IP pools to match the target cluster before
+# installing this values file in a real gNB environment.
+
+global:
+  name: free5gc
+  projectName: free5gc
+  userPlaneArchitecture: ulcl
+  uesubnet: 10.60.0.0/16
+
+  nrf:
+    service:
+      name: nrf-nnrf
+      type: ClusterIP
+      port: "8000"
+      nodePort: "30800"
+
+  sbi:
+    scheme: http
+
+  amf:
+    multus:
+      enabled: true
+      n2if:
+        ipAddress: 10.100.50.249
+      n2network:
+        enabled: true
+        name: n2network
+        type: ipvlan
+        masterIf: wlp128s0
+        subnetIP: 10.100.50.248
+        cidr: 29
+        gatewayIP: 10.100.50.254
+        excludeIP: 10.100.50.254
+    service:
+      ngap:
+        enabled: false
+        name: amf-n2
+        port: 38412
+        nodeport: 31412
+        protocol: SCTP
+        type: NodePort
+
+  smf:
+    multus:
+      enabled: true
+      n4if:
+        ipAddress: 10.100.50.244
+      n4network:
+        enabled: true
+        name: n4network
+        type: ipvlan
+        masterIf: wlp128s0
+        subnetIP: 10.100.50.240
+        cidr: 29
+        gatewayIP: 10.100.50.246
+        excludeIP: 10.100.50.246
+
+  upf:
+    multus:
+      enabled: true
+      iupf1:
+        n3if:
+          ipAddress: 10.100.50.234
+        n4if:
+          ipAddress: 10.100.50.245
+        n6if:
+          ipAddress: 10.100.100.14
+        n9if:
+          ipAddress: 10.100.50.227
+      psaupf1:
+        n4if:
+          ipAddress: 10.100.50.242
+        n6if:
+          ipAddress: 10.100.100.12
+        n9if:
+          ipAddress: 10.100.50.225
+      psaupf2:
+        n4if:
+          ipAddress: 10.100.50.243
+        n6if:
+          ipAddress: 10.100.100.13
+        n9if:
+          ipAddress: 10.100.50.226
+      n3network:
+        enabled: true
+        name: n3network
+        type: ipvlan
+        masterIf: wlp128s0
+        subnetIP: 10.100.50.232
+        cidr: 29
+        gatewayIP: 10.100.50.238
+        excludeIP: 10.100.50.238
+      n4network:
+        enabled: true
+        name: n4network
+        type: ipvlan
+        masterIf: wlp128s0
+        subnetIP: 10.100.50.240
+        cidr: 29
+        gatewayIP: 10.100.50.246
+        excludeIP: 10.100.50.246
+      n6network:
+        enabled: true
+        name: n6network
+        type: ipvlan
+        masterIf: wlp128s0
+        subnetIP: 10.100.100.0
+        cidr: 24
+        gatewayIP: 10.100.100.1
+        excludeIP: 10.100.100.254
+      n9network:
+        enabled: true
+        name: n9network
+        type: ipvlan
+        masterIf: wlp128s0
+        subnetIP: 10.100.50.224
+        cidr: 29
+        gatewayIP: 10.100.50.230
+        excludeIP: 10.100.50.230
+
+deployMongoDb: true
+deployAmf: true
+deployAusf: true
+deployChf: true
+deployN3iwf: false
+deployNef: true
+deployNrf: true
+deployNssf: true
+deployPcf: true
+deploySmf: true
+deployUdm: true
+deployUdr: true
+deployUpf: true
+deployWebui: true
+deployDbPython: false
+
+mongodb:
+  fullnameOverride: mongodb
+  useStatefulSet: true
+  extraDeploy: []
+  auth:
+    enabled: false
+  persistence:
+    size: 8Gi
+    mountPath: /bitnami/mongodb/data/db/
+    storageClass: local-path
+  service:
+    name: mongodb
+    type: ClusterIP
+    port: 27017
+    nodePort: "30017"
+
+free5gc-smf:
+  smf:
+    configuration:
+      ueRoutingInfo: |-
+        UE_EDGE_1:
+          members:
+          - imsi-208930000000001
+          topology:
+            - A: gNB1
+              B: BranchingUPF
+            - A: BranchingUPF
+              B: AnchorUPF1
+          specificPath:
+            - dest: 10.100.100.16/32
+              path: [BranchingUPF, AnchorUPF2]
+        UE_EDGE_2:
+          members:
+          - imsi-208930000000004
+          topology:
+            - A: gNB1
+              B: BranchingUPF
+            - A: BranchingUPF
+              B: AnchorUPF1
+          specificPath:
+            - dest: 1.0.0.1/32
+              path: [BranchingUPF, AnchorUPF2]
+      logger:
+        enable: true
+        level: info
+        reportCaller: false
+
+free5gc-webui:
+  webui:
+    service:
+      nodePort: 30510
+
+free5gc-upf:
+  iupf1:
+    podSecurityContext:
+      sysctls: []
+    configmap:
+      wrapperAdditionalCommands: |-
+        echo 1 > /proc/sys/net/ipv4/ip_forward
+    configuration:
+      dnnList:
+        - dnn: internet
+          cidr: 10.60.0.0/16
+  psaupf1:
+    podSecurityContext:
+      sysctls: []
+    configmap:
+      wrapperAdditionalCommands: |-
+        echo 1 > /proc/sys/net/ipv4/ip_forward
+    configuration:
+      dnnList:
+        - dnn: internet
+          cidr: 10.60.0.0/17
+  psaupf2:
+    podSecurityContext:
+      sysctls: []
+    configmap:
+      wrapperAdditionalCommands: |-
+        echo 1 > /proc/sys/net/ipv4/ip_forward
+    configuration:
+      dnnList:
+        - dnn: internet
+          cidr: 10.60.128.0/17

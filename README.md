@@ -22,6 +22,8 @@ For more information, please refer to [free5GC official site](https://free5gc.or
 
 For document, please refer to [free5gc.org/guide/](https://free5gc.org/guide/).
 
+For this repository's Kubernetes UL-CL deployment overlay, see [deploy/ulcl-multus/README.md](deploy/ulcl-multus/README.md).
+
 ## Discussion
 
 For questions and support please use the [official forum](https://forum.free5gc.org). The issue list of this repo is exclusively for bug reports and feature requests.
@@ -37,4 +39,3 @@ Detailed changes for each release are documented in the [release notes](https://
 ## License
 
 free5GC is now under [Apache 2.0](https://github.com/free5gc/free5gc/blob/master/LICENSE.txt) license.
-
