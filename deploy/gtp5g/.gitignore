@@ -1,0 +1,18 @@
+# Compile output
+*.o
+*.o.d
+*.ko
+*.cmd
+*.mod
+*.mod.c
+Module.symvers
+modules.order
+
+# Ctags
+tags
+
+# VSCode
+.vscode
+
+# CLion
+.idea/

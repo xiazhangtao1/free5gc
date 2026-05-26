@@ -69,9 +69,9 @@ data:
         cp /usr/share/iproute2/rt_tables /etc/iproute2/rt_tables
     fi
 
-    echo "1200 n6if" >> /etc/iproute2/rt_tables # create a routing table for the interface N6
-    ip rule add from {{ $.Values.global.uesubnet }} table n6if   # use the created ip table to route the traffic comming from the UE SUBNET
-    ip route add default via {{ $.Values.global.upf.multus.n6network.gatewayIP }} dev n6 table n6if  # add a default route in the created table so that all UEs will use this gateway for external communications
+    grep -q '^1200 n6if$' /etc/iproute2/rt_tables || echo "1200 n6if" >> /etc/iproute2/rt_tables # create a routing table for the interface N6
+    ip rule add from {{ $.Values.global.uesubnet }} table n6if 2>/dev/null || true   # use the created ip table to route the traffic comming from the UE SUBNET
+    ip route replace default via {{ $.Values.global.upf.multus.n6network.gatewayIP }} dev n6 table n6if  # add a default route in the created table so that all UEs will use this gateway for external communications
 
     {{- if $.Values.psaupf1.configmap.wrapperAdditionalCommands }}
     {{- $.Values.psaupf1.configmap.wrapperAdditionalCommands | nindent 4 }}

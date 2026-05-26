@@ -191,6 +191,11 @@ free5gc-upf:
   iupf1:
     podSecurityContext:
       sysctls: []
+    securityContext:
+      privileged: true
+      allowPrivilegeEscalation: true
+      capabilities:
+        add: ["NET_ADMIN"]
     configmap:
       wrapperAdditionalCommands: |-
         echo 1 > /proc/sys/net/ipv4/ip_forward
@@ -201,6 +206,11 @@ free5gc-upf:
   psaupf1:
     podSecurityContext:
       sysctls: []
+    securityContext:
+      privileged: true
+      allowPrivilegeEscalation: true
+      capabilities:
+        add: ["NET_ADMIN"]
     configmap:
       wrapperAdditionalCommands: |-
         echo 1 > /proc/sys/net/ipv4/ip_forward
@@ -211,6 +221,11 @@ free5gc-upf:
   psaupf2:
     podSecurityContext:
       sysctls: []
+    securityContext:
+      privileged: true
+      allowPrivilegeEscalation: true
+      capabilities:
+        add: ["NET_ADMIN"]
     configmap:
       wrapperAdditionalCommands: |-
         echo 1 > /proc/sys/net/ipv4/ip_forward

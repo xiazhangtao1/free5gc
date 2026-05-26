@@ -74,6 +74,22 @@ those values or override the upstream chart values.
 This runs `helm lint`, renders the chart, and checks that the UL-CL and Multus
 objects are present.
 
+## Install gtp5g
+
+The UPF requires the `gtp5g` kernel module on every Kubernetes node that can run
+UPF pods. The source is vendored in `deploy/gtp5g` for offline environments.
+
+```bash
+sudo apt-get install -y gcc-12 g++-12
+./deploy/ulcl-multus/install-gtp5g.sh
+lsmod | grep gtp5g
+```
+
+If Secure Boot is enabled, unsigned third-party kernel modules are rejected with
+`Key was rejected by service`. Disable Secure Boot in BIOS, or sign `gtp5g.ko`
+and enroll the signing certificate with MOK, then reboot before deploying
+free5GC.
+
 ## Deploy
 
 ```bash
