@@ -115,7 +115,9 @@ upsert('subscriptionData.authenticationData.authenticationSubscription', {
     encryptionKey: 0,
     encryptionAlgorithm: 0
   },
-  sequenceNumber: sqn,
+  sequenceNumber: {
+    sqn: sqn
+  },
   milenage: {
     op: {
       opValue: '',
