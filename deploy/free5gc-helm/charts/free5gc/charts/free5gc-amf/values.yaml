@@ -158,25 +158,23 @@ amf:
         - namf-oam
       servedGuamiList:
         - plmnId:
-            mcc: 208
-            mnc: 93
+            mcc: 460
+            mnc: 11
           amfId: cafe00
       supportTaiList:
         - plmnId:
-            mcc: 208
-            mnc: 93
+            mcc: 460
+            mnc: 11
           tac: 000001
       plmnSupportList:
         - plmnId:
-            mcc: 208
-            mnc: 93
+            mcc: 460
+            mnc: 11
           snssaiList:
             - sst: 1
-              sd: 010203
-            - sst: 1
-              sd: 112233
+              sd: 010101
       supportDnnList:
-        - internet
+        - cmnet
       security:
         integrityOrder:
           - NIA2

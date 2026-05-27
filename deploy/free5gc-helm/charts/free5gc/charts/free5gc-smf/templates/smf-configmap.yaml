@@ -65,18 +65,18 @@ data:
       smfName: SMF
       snssaiInfos:
         - sNssai:
-            sst: 1
-            sd: 010203
+            sst: {{ $.Values.global.snssai.sst }}
+            sd: {{ $.Values.global.snssai.sd }}
           dnnInfos: # DNN information list
-            - dnn: internet # Data Network Name
+            - dnn: {{ $.Values.global.dnn }} # Data Network Name
               dnaiList:
                 - mec
               dns: # the IP address of DNS
                 ipv4: 8.8.8.8
                 ipv6: 2001:4860:4860::8888
       plmnList: # the list of PLMN IDs that this SMF belongs to (optional, remove this key when unnecessary)
-        - mcc: 208 # Mobile Country Code (3 digits string, digit: 0~9)
-          mnc: 93 # Mobile Network Code (2 or 3 digits string, digit: 0~9)
+        - mcc: {{ $.Values.global.plmn.mcc }} # Mobile Country Code (3 digits string, digit: 0~9)
+          mnc: {{ $.Values.global.plmn.mnc }} # Mobile Network Code (2 or 3 digits string, digit: 0~9)
       userplaneInformation: # list of userplane information
         upNodes: # information of userplane node (AN or UPF)
           gNB1: # the name of the node
@@ -86,10 +86,10 @@ data:
             nodeID: {{ $.Values.global.upf.multus.iupf1.n4if.ipAddress }} # UPFB N4 interface IP
             sNssaiUpfInfos:
               - sNssai:
-                  sst: 1
-                  sd: 010203
+                  sst: {{ $.Values.global.snssai.sst }}
+                  sd: {{ $.Values.global.snssai.sd }}
                 dnnUpfInfoList:
-                  - dnn: internet
+                  - dnn: {{ $.Values.global.dnn }}
                     dnaiList:
                       - mec
             interfaces:
@@ -101,21 +101,21 @@ data:
                   - {{ $.Values.global.upf.multus.iupf1.n3if.ipAddress }}
 {{- end }}
                 networkInstances: 
-                  - internet
+                  - {{ $.Values.global.dnn }}
               - interfaceType: N9
                 endpoints:
                   - {{ $.Values.global.upf.multus.iupf1.n9if.ipAddress }}
                 networkInstances: 
-                  - internet
+                  - {{ $.Values.global.dnn }}
           AnchorUPF1:
             type: UPF
             nodeID: {{ $.Values.global.upf.multus.psaupf1.n4if.ipAddress }} # UPF1 N4 interface IP
             sNssaiUpfInfos:
               - sNssai:
-                  sst: 1
-                  sd: 010203
+                  sst: {{ $.Values.global.snssai.sst }}
+                  sd: {{ $.Values.global.snssai.sd }}
                 dnnUpfInfoList:
-                  - dnn: internet
+                  - dnn: {{ $.Values.global.dnn }}
                     pools:
                     - cidr: 10.60.0.0/17
             interfaces:
@@ -123,16 +123,16 @@ data:
                 endpoints:
                   - {{ $.Values.global.upf.multus.psaupf1.n9if.ipAddress }}
                 networkInstances: 
-                  - internet
+                  - {{ $.Values.global.dnn }}
           AnchorUPF2:
             type: UPF
             nodeID: {{ $.Values.global.upf.multus.psaupf2.n4if.ipAddress }} # UPF2 N4 interface IP
             sNssaiUpfInfos:
               - sNssai:
-                  sst: 1
-                  sd: 010203
+                  sst: {{ $.Values.global.snssai.sst }}
+                  sd: {{ $.Values.global.snssai.sd }}
                 dnnUpfInfoList:
-                  - dnn: internet
+                  - dnn: {{ $.Values.global.dnn }}
                     pools:
                     - cidr: 10.60.128.0/17
             interfaces:
@@ -140,7 +140,7 @@ data:
                 endpoints:
                   - {{ $.Values.global.upf.multus.psaupf2.n9if.ipAddress }}
                 networkInstances: 
-                  - internet
+                  - {{ $.Values.global.dnn }}
         links:
           - A: gNB1
             B: BranchingUPF

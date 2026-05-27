@@ -59,15 +59,16 @@ Edit `values.yaml` before production use:
   The overlay disables the upstream fixed-name `free5gc-pv-mongo` local PV so
   the chart can use the cluster storage class normally.
 
-The default PLMN/DNN/S-NSSAI in the upstream chart is:
+The default PLMN/DNN/S-NSSAI in this overlay is:
 
-- PLMN: `208/93`
+- PLMN: `460/11`
 - TAC: `000001`
-- DNN: `internet`
-- S-NSSAI: `sst=1`, `sd=010203`
+- DNN: `cmnet`
+- S-NSSAI: `sst=1`, `sd=010101`
+- Subscriber: `imsi-460110000000100`
 
-Align the gNB, UE subscription data, and webconsole subscriber entries with
-those values or override the upstream chart values.
+The deploy script seeds this subscriber into MongoDB after Helm reports the
+Pods ready. Align the gNB and UE/SIM profile with these values.
 
 ## Validate Locally
 

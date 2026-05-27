@@ -183,7 +183,7 @@ upf:
     # targetMemoryUtilizationPercentage: 80
   configuration:
     dnnList: # The DNN list supported by UPF
-      - dnn: internet # Data Network Name
+      - dnn: cmnet # Data Network Name
         cidr: 10.60.0.0/16 # Full UE subnet for single UPF mode
         # natifname: n6
 
@@ -275,7 +275,7 @@ psaupf1:
     # targetMemoryUtilizationPercentage: 80
   configuration:
     dnnList: # The DNN list supported by UPF
-      - dnn: internet # Data Network Name
+      - dnn: cmnet # Data Network Name
         cidr: 10.60.0.0/17 # AnchorUPF1 handles first half of UE subnet
         # natifname: n6
 
@@ -366,7 +366,7 @@ psaupf2:
     # targetMemoryUtilizationPercentage: 80
   configuration:
     dnnList: # The DNN list supported by UPF
-      - dnn: internet # Data Network Name
+      - dnn: cmnet # Data Network Name
         cidr: 10.60.128.0/17 # AnchorUPF2 handles second half of UE subnet
         # natifname: n6
 
@@ -457,7 +457,7 @@ iupf1:
     # targetMemoryUtilizationPercentage: 80
   configuration:
     dnnList: # The DNN list supported by UPF - iupf1 needs full /16 to handle all UE traffic
-      - dnn: internet # Data Network Name
+      - dnn: cmnet # Data Network Name
         cidr: 10.60.0.0/16 # Full UE subnet for branching UPF (iupf1)
         # natifname: n6
 

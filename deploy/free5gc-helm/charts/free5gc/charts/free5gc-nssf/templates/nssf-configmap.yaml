@@ -88,8 +88,8 @@ data:
             - nrfId: {{ $.Values.global.sbi.scheme }}://{{ $.Values.global.nrf.service.name }}:{{ $.Values.global.nrf.service.port }}/nnrf-nfm/v1/nf-instances
               nsiId: 21
         - snssai:
-            sst: 1
-            sd: 010203
+            sst: {{ $.Values.global.snssai.sst | default 1 }}
+            sd: {{ $.Values.global.snssai.sd | default "010101" }}
           nsiInformationList:
             - nrfId: {{ $.Values.global.sbi.scheme }}://{{ $.Values.global.nrf.service.name }}:{{ $.Values.global.nrf.service.port }}/nnrf-nfm/v1/nf-instances
               nsiId: 22

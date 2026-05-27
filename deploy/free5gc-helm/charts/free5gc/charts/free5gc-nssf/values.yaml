@@ -19,6 +19,14 @@ fullnameOverride: ""
 
 global:
   projectName: free5gc
+  plmn:
+    mcc: "460"
+    mnc: "11"
+    id: "46011"
+  snssai:
+    sst: 1
+    sd: "010101"
+  dnn: cmnet
   nrf:
     service:
       name: nrf-nnrf
@@ -124,17 +132,15 @@ nssf:
     configuration: |-
       nssfName: NSSF
       supportedPlmnList:
-        - mcc: 208
-          mnc: 93
+        - mcc: 460
+          mnc: 11
       supportedNssaiInPlmnList:
         - plmnId:
-            mcc: 208
-            mnc: 93
+            mcc: 460
+            mnc: 11
           supportedSnssaiList:
             - sst: 1
-              sd: 010203
-            - sst: 1
-              sd: 112233
+              sd: 010101
             - sst: 1
               sd: 3
             - sst: 2
