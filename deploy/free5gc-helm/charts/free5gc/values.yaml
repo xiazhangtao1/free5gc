@@ -129,6 +129,24 @@ global:
         cidr: 24
         gatewayIP: 10.100.100.1
         excludeIP: 10.100.100.254
+        psaupf1:
+          enabled: false
+          name: n6network-psaupf1
+          type: ipvlan
+          masterIf: eth1
+          subnetIP: 10.100.100.0
+          cidr: 24
+          gatewayIP: 10.100.100.1
+          excludeIP: 10.100.100.254
+        psaupf2:
+          enabled: false
+          name: n6network-psaupf2
+          type: ipvlan
+          masterIf: eth1
+          subnetIP: 10.100.200.0
+          cidr: 24
+          gatewayIP: 10.100.200.1
+          excludeIP: 10.100.200.254
       n9network:
         enabled: true
         name: n9network

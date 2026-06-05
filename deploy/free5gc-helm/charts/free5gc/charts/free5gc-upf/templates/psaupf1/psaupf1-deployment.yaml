@@ -44,10 +44,10 @@ spec:
               "ips": [ "{{ $.Values.global.upf.multus.psaupf1.n9if.ipAddress }}/{{ $.Values.global.upf.multus.n9network.cidr }}" ],
               "gateway": [ "{{ $.Values.global.upf.multus.n9network.gatewayIP }}" ]
             },
-            { "name": "{{ $.Values.global.upf.multus.n6network.name }}-{{ include "free5gc-upf.fullname" $ }}",
+            { "name": "{{- if $.Values.global.upf.multus.n6network.psaupf1.enabled -}}{{ $.Values.global.upf.multus.n6network.psaupf1.name }}{{- else -}}{{ $.Values.global.upf.multus.n6network.name }}{{- end }}-{{ include "free5gc-upf.fullname" $ }}",
               "interface": "n6",
-              "ips": [ "{{ $.Values.global.upf.multus.psaupf1.n6if.ipAddress }}/{{ $.Values.global.upf.multus.n6network.cidr }}" ],
-              "gateway": [ "{{ $.Values.global.upf.multus.n6network.gatewayIP }}" ]
+              "ips": [ "{{ $.Values.global.upf.multus.psaupf1.n6if.ipAddress }}/{{- if $.Values.global.upf.multus.n6network.psaupf1.enabled -}}{{ $.Values.global.upf.multus.n6network.psaupf1.cidr }}{{- else -}}{{ $.Values.global.upf.multus.n6network.cidr }}{{- end }}" ],
+              "gateway": [ "{{- if $.Values.global.upf.multus.n6network.psaupf1.enabled -}}{{ $.Values.global.upf.multus.n6network.psaupf1.gatewayIP }}{{- else -}}{{ $.Values.global.upf.multus.n6network.gatewayIP }}{{- end }}" ]
             },
             { "name": "{{ $.Values.global.upf.multus.n4network.name }}-{{ include "free5gc-upf.fullname" $ }}",
               "interface": "n4",
