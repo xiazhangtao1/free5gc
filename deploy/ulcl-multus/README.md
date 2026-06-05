@@ -110,19 +110,23 @@ global:
       ngap:
         enabled: true
         type: ClusterIP
+        bindAddress: 0.0.0.0
         port: 38412
         hostPort:
           enabled: true
+          hostIP: ""
           port: 38412
   upf:
     service:
       gtpu:
         enabled: true
         type: ClusterIP
+        bindAddress: 0.0.0.0
         port: 2152
         nodePort: 2152
         hostPort:
           enabled: true
+          hostIP: ""
           port: 2152
 
 free5gc-upf:
@@ -133,10 +137,12 @@ free5gc-upf:
       gtpu:
         enabled: true
         type: ClusterIP
+        bindAddress: 0.0.0.0
         port: 2152
         nodePort: 2152
         hostPort:
           enabled: true
+          hostIP: ""
           port: 2152
 ```
 
@@ -146,6 +152,16 @@ Configure the gNB to use:
 AMF N2: <k8s-node-ip>:38412/SCTP
 UPF N3: <k8s-node-ip>:2152/UDP
 ```
+
+`bindAddress` controls the address the AMF/UPF process listens on inside its
+network namespace. Keep it as `0.0.0.0` when traffic may enter through Multus,
+hostPort, NodePort, or different node interfaces. Set it to a specific local IP
+only when that address exists in the same network namespace as the container.
+
+`hostPort.hostIP` controls the Kubernetes hostPort binding on the node. Empty
+means all node addresses. Set it to a specific node IP, for example
+`192.168.25.124`, when the host has multiple addresses and the gNB must use only
+one of them.
 
 ### NodePort Mode
 
@@ -160,6 +176,7 @@ global:
       ngap:
         enabled: true
         type: NodePort
+        bindAddress: 0.0.0.0
         port: 38412
         nodeport: 38412
         hostPort:
@@ -169,6 +186,7 @@ global:
       gtpu:
         enabled: true
         type: NodePort
+        bindAddress: 0.0.0.0
         port: 2152
         nodePort: 2152
         hostPort:
@@ -180,6 +198,7 @@ free5gc-upf:
       gtpu:
         enabled: true
         type: NodePort
+        bindAddress: 0.0.0.0
         port: 2152
         nodePort: 2152
         hostPort:
@@ -189,6 +208,10 @@ free5gc-upf:
 If the cluster cannot expose those NodePorts, do not use non-standard ports for
 production gNB integration; use `hostPort`, `hostNetwork`, or an external L4
 load balancer that preserves `38412/SCTP` and `2152/UDP`.
+
+NodePort does not provide a per-Service `hostIP` field. Restricting NodePort to
+specific node addresses is a kube-proxy/node configuration concern, such as
+`--nodeport-addresses`, or should be handled by an external load balancer.
 
 ### hostNetwork Mode
 
@@ -205,6 +228,7 @@ global:
     service:
       ngap:
         enabled: false
+        bindAddress: 0.0.0.0
         port: 38412
         hostPort:
           enabled: false
@@ -218,6 +242,7 @@ free5gc-upf:
       gtpu:
         enabled: true
         type: ClusterIP
+        bindAddress: 0.0.0.0
         port: 2152
         hostPort:
           enabled: false
@@ -227,6 +252,17 @@ For UL-CL, `hostPort` is usually safer than `hostNetwork` because the UPFs still
 need well-defined N4/N6/N9 interfaces. If you use `hostNetwork` for UPF, make
 sure the node network has equivalent N4/N6/N9 interfaces/routes and that only
 one UPF instance binds each host port on a node.
+
+### Validation Status
+
+Current lab runtime validation uses the default `hostPort` mode. It has been
+verified with OAI gNB/nrUE after a Helm upgrade: nrUE created `oaitun_ue1`, AMF
+completed registration and PDU Session Resource Setup, and UE traffic from
+`oaitun_ue1` reached `8.8.8.8` and `1.1.1.1` with 0% packet loss.
+
+`hostNetwork` and `NodePort` modes are template-validated by `helm template`.
+Apply them only after checking the target node interfaces, existing listeners,
+firewall rules, and Kubernetes NodePort range.
 
 ## Host N6 Networking
 

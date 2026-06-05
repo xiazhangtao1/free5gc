@@ -12,6 +12,7 @@
 #
 {{- if eq .Values.global.userPlaneArchitecture "ulcl" }}
 {{- with .Values.iupf1 }}
+{{- $n3BindAddress := default $.Values.global.upf.service.gtpu.bindAddress .service.gtpu.bindAddress }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -41,12 +42,12 @@ data:
       # If there are multiple connection, set addr to 0.0.0.0 or list all the addresses
       ifList:
 {{- if $.Values.global.upf.multus.enabled }}
-        - addr: 0.0.0.0
+        - addr: {{ default "0.0.0.0" $n3BindAddress }}
           type: N3
         - addr: {{ $.Values.global.upf.multus.iupf1.n9if.ipAddress }}
           type: N9
 {{- else }}
-        - addr: POD_IP_ADDR
+        - addr: {{ default "POD_IP_ADDR" $n3BindAddress }}
           type: N3
         - addr: POD_IP_ADDR
           type: N9

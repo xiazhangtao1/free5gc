@@ -86,6 +86,9 @@ spec:
           protocol: {{ .service.gtpu.protocol }}
           {{- if and .service.gtpu.hostPort.enabled (not .hostNetwork.enabled) }}
           hostPort: {{ .service.gtpu.hostPort.port }}
+          {{- if .service.gtpu.hostPort.hostIP }}
+          hostIP: {{ .service.gtpu.hostPort.hostIP | quote }}
+          {{- end }}
           {{- end }}
         {{- end }}
         command: ["{{ .volume.mount }}/wrapper.sh"]

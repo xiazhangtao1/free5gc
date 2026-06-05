@@ -51,12 +51,14 @@ global:
       ngap:
         enabled: true
         name: amf-n2
+        bindAddress: 0.0.0.0
         port: 38412
         nodeport: 38412
         protocol: SCTP
         type: ClusterIP
         hostPort:
           enabled: true
+          hostIP: ""
           port: 38412
 
   smf:
@@ -79,11 +81,13 @@ global:
       gtpu:
         enabled: true
         type: ClusterIP
+        bindAddress: 0.0.0.0
         port: 2152
         nodePort: 2152
         protocol: UDP
         hostPort:
           enabled: true
+          hostIP: ""
           port: 2152
         # Set this to the Kubernetes node IP reachable by external same-L2 gNBs.
         advertiseAddress: 192.168.25.124
@@ -355,11 +359,13 @@ free5gc-upf:
       gtpu:
         enabled: true
         type: ClusterIP
+        bindAddress: 0.0.0.0
         port: 2152
         nodePort: 2152
         protocol: UDP
         hostPort:
           enabled: true
+          hostIP: ""
           port: 2152
     podSecurityContext:
       sysctls: []

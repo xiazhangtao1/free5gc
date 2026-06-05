@@ -12,6 +12,7 @@
 #
 {{- if eq .Values.global.userPlaneArchitecture "single" }}
 {{- with .Values.upf }}
+{{- $n3BindAddress := default $.Values.global.upf.service.gtpu.bindAddress .service.gtpu.bindAddress }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -41,10 +42,10 @@ data:
       # If there are multiple connection, set addr to 0.0.0.0 or list all the addresses
       ifList:
 {{- if $.Values.global.upf.multus.enabled }}
-        - addr: {{ $.Values.global.upf.multus.upf.n3if.ipAddress }}
+        - addr: {{ default $.Values.global.upf.multus.upf.n3if.ipAddress $n3BindAddress }}
           type: N3
 {{- else }}
-        - addr: POD_IP_ADDR
+        - addr: {{ default "POD_IP_ADDR" $n3BindAddress }}
           type: N3
 {{- end }}
           # name: upf.5gc.nctu.me

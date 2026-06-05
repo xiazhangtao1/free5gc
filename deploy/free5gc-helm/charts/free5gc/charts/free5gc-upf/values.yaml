@@ -24,12 +24,14 @@ global:
       gtpu:
         enabled: false
         type: NodePort
+        bindAddress: ""
         port: 2152
         nodePort: 2152
         protocol: UDP
         advertiseAddress: ""
         hostPort:
           enabled: false
+          hostIP: ""
           port: 2152
     multus:
       enabled: false
@@ -126,11 +128,13 @@ upf:
     gtpu:
       enabled: false
       type: NodePort
+      bindAddress: ""
       port: 2152
       nodePort: 2152
       protocol: UDP
       hostPort:
         enabled: false
+        hostIP: ""
         port: 2152
 
   podAnnotations: {}
@@ -403,11 +407,13 @@ iupf1:
     gtpu:
       enabled: false
       type: NodePort
+      bindAddress: ""
       port: 2152
       nodePort: 32154
       protocol: UDP
       hostPort:
         enabled: false
+        hostIP: ""
         port: 2152
 
   podAnnotations: {}

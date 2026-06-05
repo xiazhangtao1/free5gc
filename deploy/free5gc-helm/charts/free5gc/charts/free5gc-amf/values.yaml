@@ -48,12 +48,14 @@ global:
       ngap:
         enabled: true  # Enable NGAP service for external access
         name: amf-n2
+        bindAddress: 0.0.0.0
         port: 38412
         nodeport: 38412
         protocol: SCTP
         type: ClusterIP
         hostPort:
           enabled: false
+          hostIP: ""
           port: 38412
 
 initcontainers:

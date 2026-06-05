@@ -88,6 +88,9 @@ spec:
           protocol: {{ $.Values.global.amf.service.ngap.protocol }}
           {{- if and $.Values.global.amf.service.ngap.hostPort.enabled (not $.Values.global.amf.hostNetwork.enabled) }}
           hostPort: {{ $.Values.global.amf.service.ngap.hostPort.port }}
+          {{- if $.Values.global.amf.service.ngap.hostPort.hostIP }}
+          hostIP: {{ $.Values.global.amf.service.ngap.hostPort.hostIP | quote }}
+          {{- end }}
           {{- end }}
         {{- end }}
         {{- if $.Values.amf.configuration.metrics.enable }}
