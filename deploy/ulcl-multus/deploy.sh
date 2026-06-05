@@ -9,11 +9,16 @@ RELEASE=${RELEASE:-free5gc}
 CHART=${CHART:-"$ROOT_DIR/deploy/free5gc-helm/charts/free5gc"}
 VALUES=${VALUES:-"$SCRIPT_DIR/values.yaml"}
 SEED_DEFAULT_SUBSCRIBER=${SEED_DEFAULT_SUBSCRIBER:-true}
+SETUP_N6_HOST=${SETUP_N6_HOST:-true}
 
 if [[ ! -d "$CHART" ]]; then
   echo "Helm chart not found: $CHART" >&2
   echo "Run: git submodule update --init --recursive deploy/free5gc-helm" >&2
   exit 1
+fi
+
+if [[ "$SETUP_N6_HOST" == "true" ]]; then
+  "$SCRIPT_DIR/setup-n6-host.sh"
 fi
 
 kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
