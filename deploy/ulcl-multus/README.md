@@ -82,6 +82,152 @@ The default PLMN/DNN/S-NSSAI in this overlay is:
 The deploy script seeds this subscriber into MongoDB after Helm reports the
 Pods ready. Align the gNB and UE/SIM profile with these values.
 
+## N2/N3 Exposure Modes
+
+The N2 control plane and N3 user plane can be exposed in three modes. For
+standards-compliant gNBs, use `38412/SCTP` for N2 and `2152/UDP` for N3.
+
+Recommended default for this UL-CL overlay is `hostPort`:
+
+- AMF listens on Pod port `38412/SCTP` and is exposed on host port
+  `38412/SCTP`.
+- I-UPF listens on Pod port `2152/UDP` and is exposed on host port
+  `2152/UDP`.
+- Multus remains enabled, so AMF/UPF can still use dedicated N2/N3/N4/N6/N9
+  interfaces inside the pods.
+
+### hostPort Mode
+
+Use this when gNB/UE are on another server or another cluster and can reach the
+Kubernetes node IP directly. This is the default in `values.yaml`.
+
+```yaml
+global:
+  amf:
+    hostNetwork:
+      enabled: false
+    service:
+      ngap:
+        enabled: true
+        type: ClusterIP
+        port: 38412
+        hostPort:
+          enabled: true
+          port: 38412
+  upf:
+    service:
+      gtpu:
+        enabled: true
+        type: ClusterIP
+        port: 2152
+        nodePort: 2152
+        hostPort:
+          enabled: true
+          port: 2152
+
+free5gc-upf:
+  iupf1:
+    hostNetwork:
+      enabled: false
+    service:
+      gtpu:
+        enabled: true
+        type: ClusterIP
+        port: 2152
+        nodePort: 2152
+        hostPort:
+          enabled: true
+          port: 2152
+```
+
+Configure the gNB to use:
+
+```text
+AMF N2: <k8s-node-ip>:38412/SCTP
+UPF N3: <k8s-node-ip>:2152/UDP
+```
+
+### NodePort Mode
+
+Use this only if the Kubernetes cluster allows the required standard ports in
+the NodePort range. Kubernetes defaults to `30000-32767`, so `38412` and `2152`
+normally require changing the API server `--service-node-port-range`.
+
+```yaml
+global:
+  amf:
+    service:
+      ngap:
+        enabled: true
+        type: NodePort
+        port: 38412
+        nodeport: 38412
+        hostPort:
+          enabled: false
+  upf:
+    service:
+      gtpu:
+        enabled: true
+        type: NodePort
+        port: 2152
+        nodePort: 2152
+        hostPort:
+          enabled: false
+
+free5gc-upf:
+  iupf1:
+    service:
+      gtpu:
+        enabled: true
+        type: NodePort
+        port: 2152
+        nodePort: 2152
+        hostPort:
+          enabled: false
+```
+
+If the cluster cannot expose those NodePorts, do not use non-standard ports for
+production gNB integration; use `hostPort`, `hostNetwork`, or an external L4
+load balancer that preserves `38412/SCTP` and `2152/UDP`.
+
+### hostNetwork Mode
+
+Use this when the AMF/UPF should bind directly in the node network namespace.
+In this mode, do not enable `hostPort`; the container ports are already host
+ports.
+
+```yaml
+global:
+  amf:
+    hostNetwork:
+      enabled: true
+      dnsPolicy: ClusterFirstWithHostNet
+    service:
+      ngap:
+        enabled: false
+        port: 38412
+        hostPort:
+          enabled: false
+
+free5gc-upf:
+  iupf1:
+    hostNetwork:
+      enabled: true
+      dnsPolicy: ClusterFirstWithHostNet
+    service:
+      gtpu:
+        enabled: true
+        type: ClusterIP
+        port: 2152
+        hostPort:
+          enabled: false
+```
+
+For UL-CL, `hostPort` is usually safer than `hostNetwork` because the UPFs still
+need well-defined N4/N6/N9 interfaces. If you use `hostNetwork` for UPF, make
+sure the node network has equivalent N4/N6/N9 interfaces/routes and that only
+one UPF instance binds each host port on a node.
+
 ## Host N6 Networking
 
 `deploy.sh` calls `setup-n6-host.sh` by default before Helm deployment. The

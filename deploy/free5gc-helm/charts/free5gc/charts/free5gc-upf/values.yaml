@@ -25,7 +25,7 @@ global:
         enabled: false
         type: NodePort
         port: 2152
-        nodePort: 32152
+        nodePort: 2152
         protocol: UDP
         advertiseAddress: ""
         hostPort:
@@ -104,6 +104,9 @@ global:
 upf:
   name: upf
   replicaCount: 1
+  hostNetwork:
+    enabled: false
+    dnsPolicy: ClusterFirstWithHostNet
   image:
     name: free5gc/upf
     tag: v4.2.2
@@ -124,7 +127,7 @@ upf:
       enabled: false
       type: NodePort
       port: 2152
-      nodePort: 32152
+      nodePort: 2152
       protocol: UDP
       hostPort:
         enabled: false
@@ -216,7 +219,7 @@ psaupf1:
       enabled: false
       type: NodePort
       port: 2152
-      nodePort: 32152
+      nodePort: 2152
       protocol: UDP
       hostPort:
         enabled: false
@@ -378,6 +381,9 @@ psaupf2:
 iupf1:
   name: iupf1
   replicaCount: 1
+  hostNetwork:
+    enabled: false
+    dnsPolicy: ClusterFirstWithHostNet
   image:
     name: free5gc/upf
     tag: v4.2.2

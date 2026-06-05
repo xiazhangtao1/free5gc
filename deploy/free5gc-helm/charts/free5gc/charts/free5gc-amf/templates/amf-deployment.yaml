@@ -20,7 +20,7 @@ metadata:
     project: {{ $.Values.global.projectName }}
     nf: {{ .name }}
 spec:
-  {{- if $.Values.global.amf.multus.enabled }}
+  {{- if or $.Values.global.amf.multus.enabled $.Values.global.amf.hostNetwork.enabled }}
   strategy:
     type: Recreate
   {{- end }}
@@ -36,7 +36,7 @@ spec:
     metadata:
       annotations:
         {{- include "free5gc-amf.amfAnnotations" $ | nindent 8 }}
-        {{- if and $.Values.isNgapNeeded $.Values.global.amf.multus.n2network.enabled $.Values.global.amf.multus.enabled}}
+        {{- if and $.Values.isNgapNeeded $.Values.global.amf.multus.n2network.enabled $.Values.global.amf.multus.enabled (not $.Values.global.amf.hostNetwork.enabled) }}
         k8s.v1.cni.cncf.io/networks: '[
             { "name": "{{ $.Values.global.amf.multus.n2network.name }}-{{ include "free5gc-amf.fullname" $ }}",
               "interface": "n2",
@@ -55,6 +55,10 @@ spec:
         project: {{ $.Values.global.projectName }}
         nf: {{ .name }}
     spec:
+      {{- if $.Values.global.amf.hostNetwork.enabled }}
+      hostNetwork: true
+      dnsPolicy: {{ $.Values.global.amf.hostNetwork.dnsPolicy }}
+      {{- end }}
       imagePullSecrets:
         {{- toYaml .imagePullSecrets | nindent 8 }}
       securityContext:
@@ -82,6 +86,9 @@ spec:
         - name: n2
           containerPort: {{ $.Values.global.amf.service.ngap.port }}
           protocol: {{ $.Values.global.amf.service.ngap.protocol }}
+          {{- if and $.Values.global.amf.service.ngap.hostPort.enabled (not $.Values.global.amf.hostNetwork.enabled) }}
+          hostPort: {{ $.Values.global.amf.service.ngap.hostPort.port }}
+          {{- end }}
         {{- end }}
         {{- if $.Values.amf.configuration.metrics.enable }}
         - name: metrics

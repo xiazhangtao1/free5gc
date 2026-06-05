@@ -47,7 +47,9 @@ spec:
   ports:
     - port: {{ .service.gtpu.port }}
       targetPort: {{ .service.gtpu.port }}
+      {{- if eq .service.gtpu.type "NodePort" }}
       nodePort: {{ .service.gtpu.nodePort }}
+      {{- end }}
       protocol: {{ .service.gtpu.protocol }}
       name: gtpu
   selector:

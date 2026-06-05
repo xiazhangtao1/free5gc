@@ -29,6 +29,9 @@ global:
   
   # AMF Multus CNI Configuration
   amf:
+    hostNetwork:
+      enabled: false
+      dnsPolicy: ClusterFirstWithHostNet
     multus:
       enabled: false  # Default: disabled for cloud-native deployments
       n2if:  # NGAP interface (used when multus.enabled=true)
@@ -47,9 +50,12 @@ global:
         enabled: true  # Enable NGAP service for external access
         name: amf-n2
         port: 38412
-        nodeport: 31412
+        nodeport: 38412
         protocol: SCTP
-        type: NodePort
+        type: ClusterIP
+        hostPort:
+          enabled: false
+          port: 38412
   
   # SMF Multus CNI Configuration
   smf:

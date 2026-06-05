@@ -21,7 +21,7 @@ metadata:
     project: {{ $.Values.global.projectName }}
     nf: {{ .name }}
 spec:
-  {{- if $.Values.global.upf.multus.enabled }}
+  {{- if or $.Values.global.upf.multus.enabled .hostNetwork.enabled }}
   strategy:
     type: Recreate
   {{- end }}
@@ -37,7 +37,7 @@ spec:
     metadata:
       annotations:
         {{- include "free5gc-upf.iupf1Annotations" $ | nindent 8 }}
-        {{- if $.Values.global.upf.multus.enabled }}
+        {{- if and $.Values.global.upf.multus.enabled (not .hostNetwork.enabled) }}
         k8s.v1.cni.cncf.io/networks: '[
             { "name": "{{ $.Values.global.upf.multus.n3network.name }}-{{ include "free5gc-upf.fullname" $ }}",
               "interface": "n3",
@@ -67,6 +67,10 @@ spec:
         project: {{ $.Values.global.projectName }}
         nf: {{ .name }}
     spec:
+      {{- if .hostNetwork.enabled }}
+      hostNetwork: true
+      dnsPolicy: {{ .hostNetwork.dnsPolicy }}
+      {{- end }}
       imagePullSecrets:
         {{- toYaml .imagePullSecrets | nindent 8 }}
       securityContext:
@@ -85,7 +89,7 @@ spec:
         - name: n3
           containerPort: {{ .service.gtpu.port }}
           protocol: {{ .service.gtpu.protocol }}
-          {{- if .service.gtpu.hostPort.enabled }}
+          {{- if and .service.gtpu.hostPort.enabled (not .hostNetwork.enabled) }}
           hostPort: {{ .service.gtpu.hostPort.port }}
           {{- end }}
         {{- end }}
