@@ -11,6 +11,10 @@
 # Software description: An open-source project providing Helm charts to deploy 5G components (Core + RAN) on top of Kubernetes
 #
 {{- with .Values.amf }}
+{{- $nrfServiceHost := $.Values.global.nrf.service.name }}
+{{- if $.Values.global.amf.hostNetwork.enabled }}
+{{- $nrfServiceHost = printf "%s.%s.svc.cluster.local" $.Values.global.nrf.service.name $.Release.Namespace }}
+{{- end }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -70,7 +74,7 @@ spec:
         {{- end }}
         env:
         - name: DEPENDENCIES
-          value: {{ $.Values.global.sbi.scheme }}://{{ $.Values.global.nrf.service.name }}:{{ $.Values.global.nrf.service.port }}
+          value: {{ $.Values.global.sbi.scheme }}://{{ $nrfServiceHost }}:{{ $.Values.global.nrf.service.port }}
         command: ['sh', '-c', 'set -x; for dependency in $DEPENDENCIES; do while [ $(curl --insecure --connect-timeout 1 -s -o /dev/null -w "%{http_code}" $dependency) -ne 200 ]; do echo waiting for dependencies; sleep 1; done; done;']
 
       containers:
@@ -146,7 +150,9 @@ spec:
           name: {{ include "free5gc-amf.fullname" $ }}-cert-volume
         resources:
             {{- toYaml .resources | nindent 12 }}
+      {{- if not $.Values.global.amf.hostNetwork.enabled }}
       dnsPolicy: ClusterFirst
+      {{- end }}
       restartPolicy: Always
       nodeSelector:
         {{- toYaml .nodeSelector | nindent 8 }}

@@ -131,7 +131,9 @@ spec:
           name: {{ include "free5gc-upf.fullname" $ }}-{{ .name }}-empty-volume
         resources:
             {{- toYaml .resources | nindent 12 }}
+      {{- if not .hostNetwork.enabled }}
       dnsPolicy: ClusterFirst
+      {{- end }}
       restartPolicy: Always
       nodeSelector:
         {{- toYaml .nodeSelector | nindent 8 }}

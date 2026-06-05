@@ -253,16 +253,40 @@ need well-defined N4/N6/N9 interfaces. If you use `hostNetwork` for UPF, make
 sure the node network has equivalent N4/N6/N9 interfaces/routes and that only
 one UPF instance binds each host port on a node.
 
+For the current lab UL-CL topology, I-UPF hostNetwork mode requires the
+Kubernetes node to own the I-UPF N4 and N9 addresses because those interfaces no
+longer come from Multus inside the I-UPF pod:
+
+```bash
+sudo ip link add n4host-iupf link wlp128s0 type ipvlan mode l2 2>/dev/null || true
+sudo ip addr replace 10.100.50.245/29 dev n4host-iupf
+sudo ip link set n4host-iupf up
+
+sudo ip link add n9host-iupf link wlp128s0 type ipvlan mode l2 2>/dev/null || true
+sudo ip addr replace 10.100.50.227/29 dev n9host-iupf
+sudo ip link set n9host-iupf up
+```
+
+Adjust `wlp128s0`, `10.100.50.245/29`, and `10.100.50.227/29` for other
+servers. If these addresses are missing, I-UPF can bind GTP-U on
+`0.0.0.0:2152` but PFCP will fail with `cannot assign requested address` or
+`not found NodeID`.
+
+In this UL-CL lab, keep hostNetwork N2/N3 `bindAddress` as `0.0.0.0` unless
+there is a clear need to restrict the listener. Binding N2/N3 to the node IP
+can start successfully, but it changes the local N3/N9 path assumptions and
+must be revalidated with real UE traffic on the target server.
+
 ### Validation Status
 
-Current lab runtime validation uses the default `hostPort` mode. It has been
-verified with OAI gNB/nrUE after a Helm upgrade: nrUE created `oaitun_ue1`, AMF
-completed registration and PDU Session Resource Setup, and UE traffic from
+Current lab runtime validation covers both default `hostPort` mode and
+`hostNetwork` mode. In both cases OAI gNB/nrUE completed registration and PDU
+Session Resource Setup, nrUE created `oaitun_ue1`, and UE traffic from
 `oaitun_ue1` reached `8.8.8.8` and `1.1.1.1` with 0% packet loss.
 
-`hostNetwork` and `NodePort` modes are template-validated by `helm template`.
-Apply them only after checking the target node interfaces, existing listeners,
-firewall rules, and Kubernetes NodePort range.
+`NodePort` mode is template-validated by `helm template`. Apply it only after
+checking the target node interfaces, existing listeners, firewall rules, and
+Kubernetes NodePort range.
 
 ## Host N6 Networking
 
