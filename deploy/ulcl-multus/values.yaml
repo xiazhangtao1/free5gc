@@ -203,6 +203,12 @@ mongodb:
     port: 27017
     nodePort: "30017"
 
+free5gc-pcf:
+  pcf:
+    service:
+      type: NodePort
+      nodePort: 30777
+
 free5gc-smf:
   smf:
     configuration:

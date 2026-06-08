@@ -55,6 +55,7 @@ pcf:
   service:
     type: ClusterIP
     port: &Port 8080
+    nodePort: 30777
   volume:
     mount: /free5gc/config/
     tlsmount: /free5gc/config/TLS

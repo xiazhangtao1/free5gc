@@ -26,6 +26,9 @@ spec:
       targetPort: {{ .service.port }}
       protocol: TCP
       name: http
+      {{- if and (eq .service.type "NodePort") .service.nodePort }}
+      nodePort: {{ .service.nodePort }}
+      {{- end }}
   selector:
     {{- include "free5gc-pcf.selectorLabels" $ | nindent 4 }}
     project: {{ $.Values.global.projectName }}
