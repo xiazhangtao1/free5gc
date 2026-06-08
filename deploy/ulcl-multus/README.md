@@ -9,15 +9,17 @@ not require `git submodule update` or network access to fetch chart files.
 ## Topology
 
 - `BranchingUPF` (`iupf1`): N3-facing intermediate UPF and UL classifier.
-- `AnchorUPF1` (`psaupf1`): default anchor UPF for `10.60.0.0/17`.
-- `AnchorUPF2` (`psaupf2`): edge anchor UPF for `10.60.128.0/17` and selected destination traffic.
-- `AMF`: exposes N2 through NodePort for external gNBs on the same reachable node network.
+- `AnchorUPF1` (`psaupf1`): default anchor UPF for the common UE pool.
+- `AnchorUPF2` (`psaupf2`): edge anchor UPF for selected destination traffic.
+- `AMF`: exposes N2 through hostPort by default for external gNBs on the same reachable node network.
 
 Default N6 layout in this overlay:
 
 - Center DN: `psaupf1 n6 = 10.100.100.12/24`, gateway `10.100.100.1`.
 - Edge DN: `psaupf2 n6 = 10.100.200.12/24`, gateway `10.100.200.1`.
-- UE address pools: `10.60.0.0/17` for `AnchorUPF1`, `10.60.128.0/17` for `AnchorUPF2`.
+- UE address pool: `10.60.0.0/16`. Both PSA UPFs install this pool locally;
+  UL-CL chooses the PSA by SMF path selection and destination-specific
+  `ueRoutingInfo`, not by assigning disjoint UE address pools per PSA.
 
 These addresses are deployment defaults for this lab. They are not required by
 free5GC itself, but the values in `values.yaml`, the host N6 setup script, and
@@ -54,14 +56,20 @@ Edit `values.yaml` before production use:
 
 - `global.amf.multus.n2network.masterIf`: host interface reachable by the gNB N2 network. Defaults to `wlp128s0` for the current host.
 - `global.upf.multus.n3network.masterIf`: host interface reachable by the gNB N3 network.
-- `global.amf.service.ngap.nodeport`: external SCTP NodePort for NGAP. Defaults to `31412`.
+- `global.amf.service.ngap.hostPort`: host SCTP port for standards-compliant external gNB N2 traffic. Defaults to `38412`.
+- `global.amf.service.ngap.nodeport`: SCTP NodePort for NGAP when NodePort mode is used. Defaults to `38412`, and requires the Kubernetes NodePort range to include that port.
 - `global.upf.service.gtpu.advertiseAddress`: Kubernetes node IP advertised to gNBs for N3 GTP-U.
-- `free5gc-upf.iupf1.service.gtpu.nodePort`: diagnostic UDP NodePort for N3 GTP-U. Defaults to `32152`; the Service port remains `2152/UDP`.
+- `free5gc-upf.iupf1.service.gtpu.nodePort`: UDP NodePort for N3 GTP-U when NodePort mode is used. Defaults to `2152`, and requires the Kubernetes NodePort range to include that port.
 - `free5gc-upf.iupf1.service.gtpu.hostPort`: host UDP port for standards-compliant external gNB N3 traffic. Defaults to `2152` in this overlay because gNBs normally send GTP-U to UDP/2152.
 - `global.smf.multus.n4network` and `global.upf.multus.n4network`: PFCP network.
 - `global.upf.multus.n6network`: default DN network, still used by `iupf1`.
 - `global.upf.multus.n6network.psaupf1`: center DN N6 NAD for `psaupf1`.
 - `global.upf.multus.n6network.psaupf2`: edge DN N6 NAD for `psaupf2`.
+- `free5gc-upf.psaupf1.configmap.wrapperAdditionalCommands` and
+  `free5gc-upf.psaupf2.configmap.wrapperAdditionalCommands`: keep PSA UPF
+  default routes on N6. Multus can add default routes for N4/N9/eth0 too; if
+  N6 is not the selected default route, UE traffic can establish a PDU session
+  but fail to reach the DN or internet.
 - `global.upf.multus.n9network`: UPF-to-UPF N9 network.
 - `free5gc-smf.smf.configuration.ueRoutingInfo`: IMSI groups and destination-specific edge paths.
 - `free5gc-webui.webui.service.nodePort`: defaults to `30510` to avoid the
@@ -279,14 +287,20 @@ must be revalidated with real UE traffic on the target server.
 
 ### Validation Status
 
-Current lab runtime validation covers both default `hostPort` mode and
-`hostNetwork` mode. In both cases OAI gNB/nrUE completed registration and PDU
-Session Resource Setup, nrUE created `oaitun_ue1`, and UE traffic from
-`oaitun_ue1` reached `8.8.8.8` and `1.1.1.1` with 0% packet loss.
+Current lab runtime validation on 2026-06-08:
 
-`NodePort` mode is template-validated by `helm template`. Apply it only after
-checking the target node interfaces, existing listeners, firewall rules, and
-Kubernetes NodePort range.
+- `hostPort`: OAI gNB/nrUE completed registration and PDU Session Resource
+  Setup. `oaitun_ue1` was created and ping to `8.8.8.8` succeeded with 0%
+  packet loss. This is the default mode.
+- `hostNetwork`: OAI gNB/nrUE completed registration and PDU Session Resource
+  Setup. `oaitun_ue1` ping to `8.8.8.8` succeeded with 0% packet loss after
+  creating the required host-side I-UPF N4/N9 interfaces.
+- `NodePort`: applying standards-compliant `38412/SCTP` and `2152/UDP`
+  NodePorts was actually tested on the current cluster and rejected by
+  Kubernetes because this kube-apiserver uses the default `30000-32767`
+  NodePort range. Use NodePort only after the cluster owner explicitly configures
+  `--service-node-port-range` to include `2152` and `38412`, or use `hostPort`
+  / `hostNetwork` instead.
 
 ## Host N6 Networking
 
@@ -303,8 +317,7 @@ Current lab defaults:
 - Edge host gateway: `n6host2 = 10.100.200.1/24`
 - Center PSA N6 IP: `10.100.100.12`
 - Edge PSA N6 IP: `10.100.200.12`
-- UE center subnet: `10.60.0.0/17`
-- UE edge subnet: `10.60.128.0/17`
+- UE subnet: `10.60.0.0/16`
 - Preferred internet egress: `outline-tun1` if present; otherwise the script
   tries the route to `8.8.8.8`, then the default route.
 
@@ -318,6 +331,9 @@ N6_CENTER_GW=10.10.100.1/24 \
 N6_EDGE_GW=10.10.200.1/24 \
 N6_CENTER_UPF=10.10.100.12 \
 N6_EDGE_UPF=10.10.200.12 \
+UE_SUBNET=10.60.0.0/16 \
+UE_DEFAULT_UPF=10.10.100.12 \
+UE_DEFAULT_IF=n6host1 \
 N6_CENTER_SUBNET=10.10.100.0/24 \
 N6_EDGE_SUBNET=10.10.200.0/24 \
 ./deploy/ulcl-multus/deploy.sh
@@ -341,14 +357,31 @@ the PSA UPF N6 IPs:
 SETUP_N6_HOST=false ./deploy/ulcl-multus/deploy.sh
 ```
 
-External-router return routes for the default lab layout:
+External-router return route for the default lab layout:
 
 ```text
-10.60.0.0/17     via 10.100.100.12
-10.60.128.0/17   via 10.100.200.12
+10.60.0.0/16     via the active PSA UPF N6 address for the selected DN path
 ```
 
+For the host-provided internet/DN path in this lab, `setup-n6-host.sh` defaults
+that route to `psaupf1` (`10.100.100.12`). Do not split the same UE pool into
+`/17` routes on the same host unless SMF address allocation and UPF selection
+are also constrained to match that split; otherwise a UE can receive an address
+from one half of the pool while the PDU session uses the other PSA.
+
 If the external DN performs NAT itself, host iptables NAT is not required.
+
+The PSA UPF pods must use their N6 interface as the default route for internet
+or DN traffic. The overlay does this in `values.yaml` by deleting Multus-created
+N4/N9/eth0 default routes and replacing the default route with:
+
+```text
+psaupf1: default via 10.100.100.1 dev n6 onlink
+psaupf2: default via 10.100.200.1 dev n6 onlink
+```
+
+If those gateways change, update both the N6 network values and the PSA UPF
+`wrapperAdditionalCommands`.
 
 ## Validate Locally
 
@@ -420,8 +453,8 @@ Expected results:
 - `ip_forward` returns `1` in UPF pods.
 - `n6host1` has `10.100.100.1/24` and `n6host2` has `10.100.200.1/24`
   when host N6 setup is enabled.
-- gNB completes NG Setup against `<node-ip>:31412/SCTP`.
-- gNB sends N3 GTP-U to `<node-ip>:2152/UDP`. The `32152/UDP` NodePort is also present for diagnostics or non-standard clients that can target a custom GTP-U port.
+- gNB completes NG Setup against `<node-ip>:38412/SCTP`.
+- gNB sends N3 GTP-U to `<node-ip>:2152/UDP`.
 - UE registration and PDU session establishment succeed.
 - Traffic to destinations in `ueRoutingInfo.specificPath` goes through the edge anchor UPF.
 - UE business traffic can ping through the PDU tunnel, for example:
@@ -433,7 +466,10 @@ kubectl exec -n default deploy/nrue-oai-nr-ue -- ping -I oaitun_ue1 -c 3 8.8.8.8
 ## Troubleshooting Notes
 
 - If UE registration and PDU Session succeed but external ping fails, first
-  confirm host N6 gateway interfaces, return routes, and NAT/FORWARD rules.
+  confirm host N6 gateway interfaces, return routes, NAT/FORWARD rules, and the
+  PSA UPF pod default route. `ip route` inside `psaupf1` should prefer
+  `default via 10.100.100.1 dev n6`; `psaupf2` should prefer
+  `default via 10.100.200.1 dev n6`.
 - If UPF/SMF/UE pods are restarted out of order, stale user-plane state can
   produce kernel logs like `gtp5g ... No PDR match this skb : teid[...]`.
   Stop the UE, restart UPFs and SMF, wait for PFCP Association, then start the

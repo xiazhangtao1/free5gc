@@ -8,9 +8,10 @@ N6_CENTER_GW=${N6_CENTER_GW:-10.100.100.1/24}
 N6_EDGE_GW=${N6_EDGE_GW:-10.100.200.1/24}
 N6_CENTER_UPF=${N6_CENTER_UPF:-10.100.100.12}
 N6_EDGE_UPF=${N6_EDGE_UPF:-10.100.200.12}
-UE_CENTER_SUBNET=${UE_CENTER_SUBNET:-10.60.0.0/17}
-UE_EDGE_SUBNET=${UE_EDGE_SUBNET:-10.60.128.0/17}
 UE_SUBNET=${UE_SUBNET:-10.60.0.0/16}
+UE_DEFAULT_UPF=${UE_DEFAULT_UPF:-$N6_CENTER_UPF}
+UE_DEFAULT_IF=${UE_DEFAULT_IF:-$N6_CENTER_IF}
+UE_EDGE_SUBNET=${UE_EDGE_SUBNET:-}
 N6_CENTER_SUBNET=${N6_CENTER_SUBNET:-10.100.100.0/24}
 N6_EDGE_SUBNET=${N6_EDGE_SUBNET:-10.100.200.0/24}
 N6_OUT_IF=${N6_OUT_IF:-}
@@ -37,8 +38,13 @@ sudo ip link set "$N6_EDGE_IF" up
 
 sudo sysctl -w net.ipv4.ip_forward=1 >/dev/null
 
-sudo ip route replace "$UE_CENTER_SUBNET" via "$N6_CENTER_UPF" dev "$N6_CENTER_IF"
-sudo ip route replace "$UE_EDGE_SUBNET" via "$N6_EDGE_UPF" dev "$N6_EDGE_IF"
+sudo ip route delete 10.60.0.0/17 via "$N6_CENTER_UPF" dev "$N6_CENTER_IF" 2>/dev/null || true
+sudo ip route delete 10.60.128.0/17 via "$N6_EDGE_UPF" dev "$N6_EDGE_IF" 2>/dev/null || true
+sudo ip route replace "$UE_SUBNET" via "$UE_DEFAULT_UPF" dev "$UE_DEFAULT_IF"
+
+if [[ -n "$UE_EDGE_SUBNET" ]]; then
+  sudo ip route replace "$UE_EDGE_SUBNET" via "$N6_EDGE_UPF" dev "$N6_EDGE_IF"
+fi
 
 if ip route show table 7113 >/dev/null 2>&1; then
   ip rule show | grep -q "from $UE_SUBNET lookup 7113" || sudo ip rule add from "$UE_SUBNET" lookup 7113 priority 1100

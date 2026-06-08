@@ -392,10 +392,14 @@ free5gc-upf:
     configmap:
       wrapperAdditionalCommands: |-
         echo 1 > /proc/sys/net/ipv4/ip_forward
+        ip route del default via 10.100.50.246 dev n4 2>/dev/null || true
+        ip route del default via 10.100.50.230 dev n9 2>/dev/null || true
+        ip route del default via 10.244.0.1 dev eth0 2>/dev/null || true
+        ip route replace default via 10.100.100.1 dev n6 onlink
     configuration:
       dnnList:
         - dnn: cmnet
-          cidr: 10.60.0.0/17
+          cidr: 10.60.0.0/16
   psaupf2:
     podSecurityContext:
       sysctls: []
@@ -407,7 +411,11 @@ free5gc-upf:
     configmap:
       wrapperAdditionalCommands: |-
         echo 1 > /proc/sys/net/ipv4/ip_forward
+        ip route del default via 10.100.50.246 dev n4 2>/dev/null || true
+        ip route del default via 10.100.50.230 dev n9 2>/dev/null || true
+        ip route del default via 10.244.0.1 dev eth0 2>/dev/null || true
+        ip route replace default via 10.100.200.1 dev n6 onlink
     configuration:
       dnnList:
         - dnn: cmnet
-          cidr: 10.60.128.0/17
+          cidr: 10.60.0.0/16
