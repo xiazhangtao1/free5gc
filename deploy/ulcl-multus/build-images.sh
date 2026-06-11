@@ -9,6 +9,7 @@ IMPORT_TO_CONTAINERD="${IMPORT_TO_CONTAINERD:-false}"
 NFS="${NFS:-amf ausf chf nef nrf nssf pcf smf udm udr upf}"
 DOCKER_BUILD_ARGS="${DOCKER_BUILD_ARGS:-}"
 INIT_SUBMODULES="${INIT_SUBMODULES:-false}"
+OFFLINE_BUILD="${OFFLINE_BUILD:-auto}"
 
 if ! command -v "$BUILDER" >/dev/null 2>&1; then
   echo "image builder '$BUILDER' not found" >&2
@@ -21,6 +22,7 @@ echo "BUILDER=$BUILDER"
 echo "DOCKER_BUILD_ARGS=$DOCKER_BUILD_ARGS"
 echo "IMPORT_TO_CONTAINERD=$IMPORT_TO_CONTAINERD"
 echo "INIT_SUBMODULES=$INIT_SUBMODULES"
+echo "OFFLINE_BUILD=$OFFLINE_BUILD"
 
 for nf in $NFS; do
   if [ "$nf" = "webui" ] || [ "$nf" = "webconsole" ]; then
@@ -51,6 +53,7 @@ for nf in $NFS; do
     $DOCKER_BUILD_ARGS \
     -f "$DOCKERFILE" \
     --build-arg "NF=$nf" \
+    --build-arg "OFFLINE_BUILD=$OFFLINE_BUILD" \
     -t "$image" \
     "$ROOT_DIR"
 

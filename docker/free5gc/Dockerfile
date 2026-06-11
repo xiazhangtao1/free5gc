@@ -2,8 +2,20 @@ FROM ubuntu:22.04 AS builder
 
 ARG NF
 ARG DEBIAN_FRONTEND=noninteractive
+ARG OFFLINE_BUILD=auto
+ARG GO_VERSION=1.25.5
+ARG GOPROXY=https://proxy.golang.org,direct
+ARG GOSUMDB=sum.golang.org
 
-RUN apt-get update \
+COPY deploy/offline/cache /offline-cache
+
+RUN if [ "${OFFLINE_BUILD}" != "false" ] && [ -f /offline-cache/apt/builder/Packages.gz ]; then \
+      printf 'deb [trusted=yes] file:/offline-cache/apt/builder ./\n' > /etc/apt/sources.list; \
+    elif [ "${OFFLINE_BUILD}" = "true" ]; then \
+      echo "offline apt cache is missing: deploy/offline/cache/apt/builder" >&2; \
+      exit 1; \
+    fi \
+    && apt-get update \
     && apt-get install -y --no-install-recommends \
       ca-certificates \
       curl \
@@ -12,32 +24,57 @@ RUN apt-get update \
       xz-utils \
     && rm -rf /var/lib/apt/lists/*
 
-ARG GO_VERSION=1.25.5
-RUN curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" \
-      | tar -C /usr/local -xz
+RUN if [ "${OFFLINE_BUILD}" != "false" ] && [ -f "/offline-cache/go/go${GO_VERSION}.linux-amd64.tar.gz" ]; then \
+      tar -C /usr/local -xzf "/offline-cache/go/go${GO_VERSION}.linux-amd64.tar.gz"; \
+    elif [ "${OFFLINE_BUILD}" = "true" ]; then \
+      echo "offline Go tarball is missing: deploy/offline/cache/go/go${GO_VERSION}.linux-amd64.tar.gz" >&2; \
+      exit 1; \
+    else \
+      curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" \
+        | tar -C /usr/local -xz; \
+    fi
 ENV PATH="/usr/local/go/bin:${PATH}"
+ENV GOPATH=/go
 
 WORKDIR /src/free5gc
 COPY . .
 
 RUN test -n "${NF}" \
     && test -d "NFs/${NF}/cmd" \
-    && make "${NF}"
+    && if [ "${OFFLINE_BUILD}" != "false" ] && [ -d /offline-cache/gomod/pkg/mod/cache/download ]; then \
+         mkdir -p /go/pkg/mod; \
+         cp -a /offline-cache/gomod/pkg/mod/. /go/pkg/mod/; \
+         GOPROXY=off GOSUMDB=off make "${NF}"; \
+       elif [ "${OFFLINE_BUILD}" = "true" ]; then \
+         echo "offline Go module cache is missing: deploy/offline/cache/gomod/pkg/mod/cache/download" >&2; \
+         exit 1; \
+       else \
+         GOPROXY="${GOPROXY}" GOSUMDB="${GOSUMDB}" make "${NF}"; \
+       fi
 
 FROM ubuntu:22.04
 
 ARG NF
 ARG DEBIAN_FRONTEND=noninteractive
+ARG OFFLINE_BUILD=auto
 ENV NF=${NF}
 
-RUN apt-get update \
+COPY deploy/offline/cache /offline-cache
+
+RUN if [ "${OFFLINE_BUILD}" != "false" ] && [ -f /offline-cache/apt/runtime/Packages.gz ]; then \
+      printf 'deb [trusted=yes] file:/offline-cache/apt/runtime ./\n' > /etc/apt/sources.list; \
+    elif [ "${OFFLINE_BUILD}" = "true" ]; then \
+      echo "offline apt cache is missing: deploy/offline/cache/apt/runtime" >&2; \
+      exit 1; \
+    fi \
+    && apt-get update \
     && apt-get install -y --no-install-recommends \
       ca-certificates \
       iproute2 \
       iptables \
       netbase \
       tini \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* /offline-cache
 
 WORKDIR /free5gc
 
