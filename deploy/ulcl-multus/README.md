@@ -410,17 +410,33 @@ free5GC.
 
 ## Deploy
 
+### Online deployment
+
+Use this path when the host can access Ubuntu apt repositories, Go module
+proxies, container image registries, and GitHub.
+
 ```bash
 ./deploy/ulcl-multus/build-images.sh
 ./deploy/ulcl-multus/deploy.sh
 ```
 
 The image build uses `docker/free5gc/Dockerfile`, whose builder and runtime
-stages are based on Ubuntu 22.04. If the Kubernetes node uses containerd
-directly, import the images into the `k8s.io` namespace:
+stages are based on Ubuntu 22.04. The default `OFFLINE_BUILD=auto` uses the
+local cache under `deploy/offline/cache` when it exists; otherwise it keeps the
+online behavior.
+
+If the Kubernetes node uses containerd directly, import the images into the
+`k8s.io` namespace:
 
 ```bash
 IMPORT_TO_CONTAINERD=true ./deploy/ulcl-multus/build-images.sh
+```
+
+If Docker build cannot resolve apt or Go hosts because the host is using a VPN,
+use host networking for the image build:
+
+```bash
+DOCKER_BUILD_ARGS=--network=host IMPORT_TO_CONTAINERD=true ./deploy/ulcl-multus/build-images.sh
 ```
 
 Useful overrides:
@@ -434,6 +450,69 @@ To run only the host N6 network setup:
 ```bash
 ./deploy/ulcl-multus/setup-n6-host.sh
 ```
+
+### Offline deployment
+
+The repository includes a pre-populated offline build cache under
+`deploy/offline/cache`:
+
+- Go toolchain tarball: `deploy/offline/cache/go`
+- Go module download cache: `deploy/offline/cache/gomod`
+- Local apt repositories for the Docker builder/runtime stages:
+  `deploy/offline/cache/apt`
+
+In an offline environment, build images with networking disabled to verify that
+no online downloads are used:
+
+```bash
+NFS=pcf OFFLINE_BUILD=true DOCKER_BUILD_ARGS=--network=none ./deploy/ulcl-multus/build-images.sh
+```
+
+For a full CN image build:
+
+```bash
+OFFLINE_BUILD=true DOCKER_BUILD_ARGS=--network=none ./deploy/ulcl-multus/build-images.sh
+```
+
+If the Kubernetes node uses containerd directly:
+
+```bash
+OFFLINE_BUILD=true DOCKER_BUILD_ARGS=--network=none IMPORT_TO_CONTAINERD=true ./deploy/ulcl-multus/build-images.sh
+```
+
+Runtime container images must already exist in Docker/containerd in the offline
+environment. On an online machine, save commonly used images:
+
+```bash
+./deploy/offline/save-images.sh
+```
+
+Move `deploy/offline/images/free5gc-offline-images.tar` to the offline machine,
+then load it:
+
+```bash
+IMPORT_TO_CONTAINERD=true ./deploy/offline/load-images.sh
+```
+
+Then deploy normally:
+
+```bash
+./deploy/ulcl-multus/deploy.sh
+```
+
+To refresh the offline cache while online:
+
+```bash
+./deploy/offline/prepare-offline-cache.sh
+```
+
+Offline build mode flags:
+
+- `OFFLINE_BUILD=auto`: default. Use local cache when present, otherwise use
+  online downloads.
+- `OFFLINE_BUILD=true`: require local cache and fail immediately if something
+  is missing.
+- `OFFLINE_BUILD=false`: force the original online behavior.
 
 ## Runtime Checks
 
@@ -462,6 +541,118 @@ Expected results:
 ```bash
 kubectl exec -n default deploy/nrue-oai-nr-ue -- ping -I oaitun_ue1 -c 3 8.8.8.8
 ```
+
+## XCN Dedicated Bearer API
+
+This branch exposes a PCF-side external API for compute-center driven
+dedicated bearer creation and deletion.
+
+The Helm overlay exposes PCF as `NodePort 30777`:
+
+```bash
+kubectl get svc free5gc-free5gc-pcf-service -n free5gc -o wide
+```
+
+Use `http://<node-ip>:30777/xcn-dedicated-bearer/v1/bearers` from outside the
+cluster. The request can identify the target session in either of these ways:
+
+- `ueIp`: match the existing SM Policy by UE IPv4/IPv6 address.
+- `supi` plus `pduSessionId`: match the existing SM Policy directly.
+
+If both are present, `ueIp` has priority and `supi/pduSessionId` are ignored
+for target selection.
+
+Create by `supi + pduSessionId`:
+
+```bash
+curl --http2-prior-knowledge -sS -i \
+  -X POST http://192.168.25.124:30777/xcn-dedicated-bearer/v1/bearers \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "supi": "imsi-460110000000100",
+    "pduSessionId": 1,
+    "mediaType": "audio",
+    "flowDescriptions": [
+      "permit out ip from any to assigned",
+      "permit in ip from assigned to any"
+    ],
+    "qos": {
+      "5qi": 2,
+      "arp": {
+        "priorityLevel": 8,
+        "preemptionCapability": "NOT_PREEMPT",
+        "preemptionVulnerability": "PREEMPTABLE"
+      },
+      "maxbrDl": "10 Mbps",
+      "maxbrUl": "10 Mbps",
+      "gbrDl": "5 Mbps",
+      "gbrUl": "5 Mbps"
+    }
+  }'
+```
+
+Create by `ueIp`:
+
+```bash
+curl --http2-prior-knowledge -sS -i \
+  -X POST http://192.168.25.124:30777/xcn-dedicated-bearer/v1/bearers \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "ueIp": "10.60.0.3",
+    "supi": "ignored-when-ueIp-is-present",
+    "pduSessionId": 99,
+    "mediaType": "audio",
+    "flowDescriptions": [
+      "permit out ip from any to assigned",
+      "permit in ip from assigned to any"
+    ],
+    "qos": {
+      "5qi": 2,
+      "arp": {
+        "priorityLevel": 8,
+        "preemptionCapability": "NOT_PREEMPT",
+        "preemptionVulnerability": "PREEMPTABLE"
+      },
+      "maxbrDl": "10 Mbps",
+      "maxbrUl": "10 Mbps",
+      "gbrDl": "5 Mbps",
+      "gbrUl": "5 Mbps"
+    }
+  }'
+```
+
+A successful creation returns `201` and an `appSessionId`, for example:
+
+```json
+{"appSessionId":"imsi-460110000000100-1","pccRuleIds":{"1-1":"PccRuleId-1"}}
+```
+
+Delete by `appSessionId`:
+
+```bash
+curl --http2-prior-knowledge -sS -i \
+  -X DELETE http://192.168.25.124:30777/xcn-dedicated-bearer/v1/bearers/imsi-460110000000100-1
+```
+
+Delete by request body:
+
+```bash
+curl --http2-prior-knowledge -sS -i \
+  -X POST http://192.168.25.124:30777/xcn-dedicated-bearer/v1/bearers/delete \
+  -H 'Content-Type: application/json' \
+  -d '{"ueIp":"10.60.0.3"}'
+```
+
+Expected logs after creation:
+
+```bash
+kubectl logs -n free5gc -l nf=pcf --since=2m | grep 'SM Policy Update'
+kubectl logs -n free5gc -l nf=smf --since=2m | grep 'PFCP Session Modification'
+```
+
+If the API returns `sm policy not found` after restarting PCF, restart or
+reconnect the UE so SMF recreates the SM Policy context in PCF, then retry the
+request.
 
 ## Troubleshooting Notes
 
