@@ -624,8 +624,11 @@ curl --http2-prior-knowledge -sS -i \
 A successful creation returns `201` and an `appSessionId`, for example:
 
 ```json
-{"appSessionId":"imsi-460110000000100-1","pccRuleIds":{"1-1":"PccRuleId-1"}}
+{"appSessionId":"imsi-460110000000100-1","pccRuleIds":{"1-1":"PccRuleId-2"}}
 ```
+
+`PccRuleId-1` is the default session rule. XCN dedicated bearer creation uses a
+separate PCC/QoS rule, so the returned PCC rule should not be `PccRuleId-1`.
 
 Delete by `appSessionId`:
 
@@ -648,7 +651,24 @@ Expected logs after creation:
 ```bash
 kubectl logs -n free5gc -l nf=pcf --since=2m | grep 'SM Policy Update'
 kubectl logs -n free5gc -l nf=smf --since=2m | grep 'PFCP Session Modification'
+kubectl logs deploy/gnb-oai-gnb --since=2m | grep 'created new DRB 2 for QFI 2'
+kubectl logs deploy/nrue-oai-nr-ue --since=2m | grep 'Added DRB 2'
 ```
+
+Expected logs after deletion:
+
+```bash
+kubectl logs -n free5gc -l nf=smf --since=2m | grep 'Remove PCCRule'
+kubectl logs -n free5gc -l nf=smf --since=2m | grep 'PFCP Session Modification'
+kubectl logs -n free5gc -l nf=amf --since=2m | grep 'Send PDU Session Resource Modify Request'
+```
+
+Deletion follows the 5G PDU Session Modification procedure: SMF removes the XCN
+PCC/PFCP state and sends a UE-side modification containing NAS QoS Rule/QoS Flow
+Description deletion plus NGAP `QosFlowToReleaseList`. In the current OAI gNB
+build used for local validation, this terminal-side release can restart the gNB
+in `nr_rrc_remove_drb_by_id(... drb_id=0)`. Treat that as an OAI gNB issue; the
+core network keeps the standard release signaling enabled.
 
 If the API returns `sm policy not found` after restarting PCF, restart or
 reconnect the UE so SMF recreates the SM Policy context in PCF, then retry the
