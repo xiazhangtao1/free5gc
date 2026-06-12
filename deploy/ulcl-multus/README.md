@@ -3,8 +3,10 @@
 This directory contains the project overlay for deploying free5GC on Kubernetes
 with UL-CL enabled.
 
-The required Helm chart is vendored in `deploy/free5gc-helm`; deployment does
-not require `git submodule update` or network access to fetch chart files.
+The required Helm chart is vendored in `deploy/free5gc-helm`. NF and webconsole
+sources are also vendored into this branch instead of being kept as Git
+submodules, so deployment and image builds do not require `git submodule update`
+or network access to fetch source repositories.
 
 ## Topology
 

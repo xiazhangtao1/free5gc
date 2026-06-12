@@ -15,15 +15,15 @@ WEBCONSOLE_FRONTEND = $(WEBCONSOLE)/public
 
 VERSION = $(shell git describe --tags)
 BUILD_TIME = $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
-COMMIT_HASH = $(shell git submodule status | grep $(GO_SRC_PATH)/$(@F) | awk '{print $$(1)}' | cut -c1-8)
-COMMIT_TIME = $(shell cd $(GO_SRC_PATH)/$(@F) && git log --pretty="@%at" -1 | xargs date -u +"%Y-%m-%dT%H:%M:%SZ" -d)
+COMMIT_HASH = $(shell git log -1 --format=%h -- $(GO_SRC_PATH)/$(@F))
+COMMIT_TIME = $(shell git log -1 --format=@%ct -- $(GO_SRC_PATH)/$(@F) | xargs date -u +"%Y-%m-%dT%H:%M:%SZ" -d)
 LDFLAGS = -X github.com/free5gc/util/version.VERSION=$(VERSION) \
           -X github.com/free5gc/util/version.BUILD_TIME=$(BUILD_TIME) \
           -X github.com/free5gc/util/version.COMMIT_HASH=$(COMMIT_HASH) \
           -X github.com/free5gc/util/version.COMMIT_TIME=$(COMMIT_TIME)
 
-WEBCONSOLE_COMMIT_HASH = $(shell git submodule status | grep $(WEBCONSOLE) | awk '{print $$(1)}' | cut -c1-8)
-WEBCONSOLE_COMMIT_TIME = $(shell cd $(WEBCONSOLE) && git log --pretty="@%at" -1 | xargs date -u +"%Y-%m-%dT%H:%M:%SZ" -d)
+WEBCONSOLE_COMMIT_HASH = $(shell git log -1 --format=%h -- $(WEBCONSOLE))
+WEBCONSOLE_COMMIT_TIME = $(shell git log -1 --format=@%ct -- $(WEBCONSOLE) | xargs date -u +"%Y-%m-%dT%H:%M:%SZ" -d)
 WEBCONSOLE_LDFLAGS = -X github.com/free5gc/util/version.VERSION=$(VERSION) \
                      -X github.com/free5gc/util/version.BUILD_TIME=$(BUILD_TIME) \
                      -X github.com/free5gc/util/version.COMMIT_HASH=$(WEBCONSOLE_COMMIT_HASH) \
@@ -79,4 +79,3 @@ clean:
 	rm -rf $(addprefix $(GO_BIN_PATH)/, $(GO_NF))
 	rm -rf $(addprefix $(GO_SRC_PATH)/, $(addsuffix /$(C_BUILD_PATH), $(C_NF)))
 	rm -rf $(WEBCONSOLE)/$(GO_BIN_PATH)/$(WEBCONSOLE)
-
