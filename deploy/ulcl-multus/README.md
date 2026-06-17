@@ -678,6 +678,9 @@ curl --http2-prior-knowledge -sS -i \
   -d '{"ueIp":"10.60.0.3"}'
 ```
 
+When a selected PDU session has more than one XCN-created bearer, include
+`appSessionId` or the original `flowDescriptions` to avoid ambiguous deletion.
+
 Query XCN-created dedicated bearers for a target session:
 
 ```bash

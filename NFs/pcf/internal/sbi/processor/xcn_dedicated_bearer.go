@@ -420,7 +420,7 @@ func (p *Processor) findXcnAppSessionByRequest(request XcnDedicatedBearerRequest
 		return "", err
 	}
 	if len(request.FlowDescriptions) == 0 {
-		return "", fmt.Errorf("flowDescriptions is required")
+		return p.findSingleXcnAppSession(smPolicy)
 	}
 
 	expected := sortedStrings(request.FlowDescriptions)
@@ -436,6 +436,28 @@ func (p *Processor) findXcnAppSessionByRequest(request XcnDedicatedBearerRequest
 		}
 	}
 	return "", fmt.Errorf("xcn app session not found")
+}
+
+func (p *Processor) findSingleXcnAppSession(smPolicy *pcf_context.UeSmPolicyData) (string, error) {
+	var matchedAppSessionID string
+	for appSessionID := range smPolicy.AppSessions {
+		val, ok := p.Context().AppSessionPool.Load(appSessionID)
+		if !ok {
+			continue
+		}
+		appSession := val.(*pcf_context.AppSessionData)
+		if !xcnAppSessionMatches(appSession) {
+			continue
+		}
+		if matchedAppSessionID != "" {
+			return "", fmt.Errorf("multiple xcn app sessions found; appSessionId or flowDescriptions is required")
+		}
+		matchedAppSessionID = appSessionID
+	}
+	if matchedAppSessionID == "" {
+		return "", fmt.Errorf("xcn app session not found")
+	}
+	return matchedAppSessionID, nil
 }
 
 func (p *Processor) buildXcnDedicatedBearerQueryResponse(
