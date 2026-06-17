@@ -25,6 +25,9 @@ type XcnDedicatedBearerRequest struct {
 	Supi             string         `json:"supi,omitempty"`
 	PduSessionID     int32          `json:"pduSessionId,omitempty"`
 	UeIP             string         `json:"ueIp,omitempty"`
+	NgapID           int64          `json:"ngapId,omitempty"`
+	AmfUeNgapID      int64          `json:"amfUeNgapId,omitempty"`
+	RanUeNgapID      int64          `json:"ranUeNgapId,omitempty"`
 	MediaType        string         `json:"mediaType,omitempty"`
 	FlowDescriptions []string       `json:"flowDescriptions,omitempty"`
 	Dnn              string         `json:"dnn,omitempty"`
@@ -63,12 +66,38 @@ type xcnDedicatedBearerResponse struct {
 	PccRuleIDs   map[string]string `json:"pccRuleIds,omitempty"`
 }
 
+type xcnDedicatedBearerQueryResponse struct {
+	Supi         string                   `json:"supi"`
+	PduSessionID int32                    `json:"pduSessionId"`
+	UeIP         string                   `json:"ueIp,omitempty"`
+	AmfUeNgapID  int64                    `json:"amfUeNgapId,omitempty"`
+	RanUeNgapID  int64                    `json:"ranUeNgapId,omitempty"`
+	Bearers      []xcnDedicatedBearerInfo `json:"bearers"`
+	BearerCount  int                      `json:"bearerCount"`
+}
+
+type xcnDedicatedBearerInfo struct {
+	AppSessionID string           `json:"appSessionId"`
+	AfAppID      string           `json:"afAppId,omitempty"`
+	PccRules     []xcnPccRuleInfo `json:"pccRules"`
+	PccRuleCount int              `json:"pccRuleCount"`
+}
+
+type xcnPccRuleInfo struct {
+	PccRuleID  string                   `json:"pccRuleId"`
+	Precedence int32                    `json:"precedence"`
+	FlowStatus models.FlowStatus        `json:"flowStatus"`
+	Qos        *models.QosData          `json:"qos,omitempty"`
+	Flows      []models.FlowInformation `json:"flows,omitempty"`
+}
+
 func (p *Processor) HandleCreateXcnDedicatedBearer(c *gin.Context, request XcnDedicatedBearerRequest) {
-	if request.UeIP != "" {
-		p.HandleCreateXcnDedicatedBearerByUeIP(c, request)
+	smPolicy, err := p.resolveSmPolicy(request)
+	if err != nil {
+		xcnWriteError(c, http.StatusNotFound, err.Error())
 		return
 	}
-	p.HandleCreateXcnDedicatedBearerBySupi(c, request)
+	p.createXcnDedicatedBearer(c, smPolicy, request)
 }
 
 func (p *Processor) HandleCreateXcnDedicatedBearerBySupi(c *gin.Context, request XcnDedicatedBearerRequest) {
@@ -95,6 +124,15 @@ func (p *Processor) HandleCreateXcnDedicatedBearerByUeIP(c *gin.Context, request
 		return
 	}
 	p.createXcnDedicatedBearer(c, smPolicy, request)
+}
+
+func (p *Processor) HandleQueryXcnDedicatedBearer(c *gin.Context, request XcnDedicatedBearerRequest) {
+	smPolicy, err := p.resolveSmPolicy(request)
+	if err != nil {
+		xcnWriteError(c, http.StatusNotFound, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, p.buildXcnDedicatedBearerQueryResponse(smPolicy))
 }
 
 func (p *Processor) HandleDeleteXcnDedicatedBearerByID(c *gin.Context, appSessionID string) {
@@ -310,6 +348,63 @@ func (p *Processor) findSmPolicyByUeIP(request XcnDedicatedBearerRequest) (*pcf_
 	return smPolicy, nil
 }
 
+func (p *Processor) resolveSmPolicy(request XcnDedicatedBearerRequest) (*pcf_context.UeSmPolicyData, error) {
+	if request.UeIP != "" {
+		return p.findSmPolicyByUeIP(request)
+	}
+	if request.AmfUeNgapID != 0 || request.RanUeNgapID != 0 || request.NgapID != 0 {
+		return p.findSmPolicyByNgapID(request)
+	}
+	if request.Supi != "" && request.PduSessionID != 0 {
+		if smPolicy, ok := p.findSmPolicyBySupiAndPduSessionID(request.Supi, request.PduSessionID); ok {
+			return smPolicy, nil
+		}
+	}
+	return nil, fmt.Errorf("sm policy not found")
+}
+
+func (p *Processor) findSmPolicyByNgapID(request XcnDedicatedBearerRequest) (*pcf_context.UeSmPolicyData, error) {
+	ueContexts, err := p.Consumer().GetRegisteredUEContextsFromOAM()
+	if err != nil {
+		return nil, err
+	}
+	for _, ueContext := range ueContexts {
+		if !xcnNgapSelectorMatches(request, ueContext.AmfUeNgapId, ueContext.RanUeNgapId) {
+			continue
+		}
+		for _, pduSession := range ueContext.PduSessions {
+			pduSessionID, err := strconv.ParseInt(pduSession.PduSessionId, 10, 32)
+			if err != nil || pduSessionID == 0 {
+				continue
+			}
+			if request.PduSessionID != 0 && request.PduSessionID != int32(pduSessionID) {
+				continue
+			}
+			smPolicy, ok := p.findSmPolicyBySupiAndPduSessionID(ueContext.Supi, int32(pduSessionID))
+			if ok {
+				return smPolicy, nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("sm policy not found")
+}
+
+func xcnNgapSelectorMatches(request XcnDedicatedBearerRequest, amfUeNgapID, ranUeNgapID int64) bool {
+	if request.AmfUeNgapID != 0 && request.AmfUeNgapID == amfUeNgapID {
+		return true
+	}
+	if request.NgapID != 0 && request.NgapID == amfUeNgapID {
+		return true
+	}
+	if request.RanUeNgapID != 0 && request.RanUeNgapID == ranUeNgapID {
+		return true
+	}
+	if request.NgapID != 0 && request.NgapID == ranUeNgapID {
+		return true
+	}
+	return false
+}
+
 func (p *Processor) isXcnAppSession(appSessionID string) bool {
 	val, ok := p.Context().AppSessionPool.Load(appSessionID)
 	if !ok {
@@ -320,20 +415,9 @@ func (p *Processor) isXcnAppSession(appSessionID string) bool {
 }
 
 func (p *Processor) findXcnAppSessionByRequest(request XcnDedicatedBearerRequest) (string, error) {
-	var smPolicy *pcf_context.UeSmPolicyData
-	var err error
-	if request.UeIP != "" {
-		smPolicy, err = p.findSmPolicyByUeIP(request)
-		if err != nil {
-			return "", err
-		}
-	} else if request.Supi != "" && request.PduSessionID != 0 {
-		if found, ok := p.findSmPolicyBySupiAndPduSessionID(request.Supi, request.PduSessionID); ok {
-			smPolicy = found
-		}
-	}
-	if smPolicy == nil {
-		return "", fmt.Errorf("sm policy not found")
+	smPolicy, err := p.resolveSmPolicy(request)
+	if err != nil {
+		return "", err
 	}
 	if len(request.FlowDescriptions) == 0 {
 		return "", fmt.Errorf("flowDescriptions is required")
@@ -352,6 +436,83 @@ func (p *Processor) findXcnAppSessionByRequest(request XcnDedicatedBearerRequest
 		}
 	}
 	return "", fmt.Errorf("xcn app session not found")
+}
+
+func (p *Processor) buildXcnDedicatedBearerQueryResponse(
+	smPolicy *pcf_context.UeSmPolicyData,
+) xcnDedicatedBearerQueryResponse {
+	policyContext := smPolicy.PolicyContext
+	response := xcnDedicatedBearerQueryResponse{
+		Supi:         smPolicy.PcfUe.Supi,
+		PduSessionID: policyContext.PduSessionId,
+		Bearers:      []xcnDedicatedBearerInfo{},
+	}
+	if policyContext.Ipv4Address != "" {
+		response.UeIP = policyContext.Ipv4Address
+	} else {
+		response.UeIP = policyContext.Ipv6AddressPrefix
+	}
+	p.fillNgapIDsFromOAM(&response)
+
+	for appSessionID := range smPolicy.AppSessions {
+		val, ok := p.Context().AppSessionPool.Load(appSessionID)
+		if !ok {
+			continue
+		}
+		appSession := val.(*pcf_context.AppSessionData)
+		if !xcnAppSessionMatches(appSession) {
+			continue
+		}
+		info := xcnDedicatedBearerInfo{
+			AppSessionID: appSession.AppSessionId,
+			AfAppID:      appSession.AppSessionContext.AscReqData.AfAppId,
+		}
+		for _, pccRuleID := range appSession.RelatedPccRuleIds {
+			pccRule := smPolicy.PolicyDecision.PccRules[pccRuleID]
+			if pccRule == nil {
+				continue
+			}
+			pccInfo := xcnPccRuleInfo{
+				PccRuleID:  pccRule.PccRuleId,
+				Precedence: pccRule.Precedence,
+				Flows:      pccRule.FlowInfos,
+			}
+			if len(pccRule.RefQosData) > 0 {
+				pccInfo.Qos = smPolicy.PolicyDecision.QosDecs[pccRule.RefQosData[0]]
+			}
+			if len(pccRule.RefTcData) > 0 {
+				if tcData := smPolicy.PolicyDecision.TraffContDecs[pccRule.RefTcData[0]]; tcData != nil {
+					pccInfo.FlowStatus = tcData.FlowStatus
+				}
+			}
+			info.PccRules = append(info.PccRules, pccInfo)
+		}
+		info.PccRuleCount = len(info.PccRules)
+		response.Bearers = append(response.Bearers, info)
+	}
+	response.BearerCount = len(response.Bearers)
+	return response
+}
+
+func (p *Processor) fillNgapIDsFromOAM(response *xcnDedicatedBearerQueryResponse) {
+	ueContexts, err := p.Consumer().GetRegisteredUEContextsFromOAM()
+	if err != nil {
+		return
+	}
+	for _, ueContext := range ueContexts {
+		if ueContext.Supi != response.Supi {
+			continue
+		}
+		for _, pduSession := range ueContext.PduSessions {
+			pduSessionID, err := strconv.ParseInt(pduSession.PduSessionId, 10, 32)
+			if err != nil || int32(pduSessionID) != response.PduSessionID {
+				continue
+			}
+			response.AmfUeNgapID = pduSession.AmfUeNgapId
+			response.RanUeNgapID = pduSession.RanUeNgapId
+			return
+		}
+	}
 }
 
 func (r XcnDedicatedBearerRequest) mediaTypeAnd5qi() (models.MediaType, int32, error) {
@@ -507,5 +668,10 @@ func xcnWriteError(c *gin.Context, status int, detail string) {
 }
 
 func (r XcnDedicatedBearerRequest) String() string {
-	return "supi=" + r.Supi + ",pduSessionId=" + strconv.Itoa(int(r.PduSessionID)) + ",ueIp=" + r.UeIP
+	return "supi=" + r.Supi +
+		",pduSessionId=" + strconv.Itoa(int(r.PduSessionID)) +
+		",ueIp=" + r.UeIP +
+		",ngapId=" + strconv.FormatInt(r.NgapID, 10) +
+		",amfUeNgapId=" + strconv.FormatInt(r.AmfUeNgapID, 10) +
+		",ranUeNgapId=" + strconv.FormatInt(r.RanUeNgapID, 10)
 }

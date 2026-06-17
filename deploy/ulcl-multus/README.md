@@ -556,13 +556,15 @@ kubectl get svc free5gc-free5gc-pcf-service -n free5gc -o wide
 ```
 
 Use `http://<node-ip>:30777/xcn-dedicated-bearer/v1/bearers` from outside the
-cluster. The request can identify the target session in either of these ways:
+cluster. The request can identify the target session in these ways:
 
 - `ueIp`: match the existing SM Policy by UE IPv4/IPv6 address.
+- `ngapId`: match AMF UE NGAP ID first, then RAN UE NGAP ID.
+- `amfUeNgapId` or `ranUeNgapId`: match the explicit NGAP ID type.
 - `supi` plus `pduSessionId`: match the existing SM Policy directly.
 
-If both are present, `ueIp` has priority and `supi/pduSessionId` are ignored
-for target selection.
+If multiple selectors are present, target selection priority is
+`ueIp` -> `ngapId/amfUeNgapId/ranUeNgapId` -> `supi+pduSessionId`.
 
 Create by `supi + pduSessionId`:
 
@@ -623,6 +625,34 @@ curl --http2-prior-knowledge -sS -i \
   }'
 ```
 
+Create by `ngapId`:
+
+```bash
+curl --http2-prior-knowledge -sS -i \
+  -X POST http://192.168.25.124:30777/xcn-dedicated-bearer/v1/bearers \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "ngapId": 1,
+    "mediaType": "audio",
+    "flowDescriptions": [
+      "permit out ip from any to assigned",
+      "permit in ip from assigned to any"
+    ],
+    "qos": {
+      "5qi": 2,
+      "arp": {
+        "priorityLevel": 8,
+        "preemptionCapability": "NOT_PREEMPT",
+        "preemptionVulnerability": "PREEMPTABLE"
+      },
+      "maxbrDl": "10 Mbps",
+      "maxbrUl": "10 Mbps",
+      "gbrDl": "5 Mbps",
+      "gbrUl": "5 Mbps"
+    }
+  }'
+```
+
 A successful creation returns `201` and an `appSessionId`, for example:
 
 ```json
@@ -646,6 +676,19 @@ curl --http2-prior-knowledge -sS -i \
   -X POST http://192.168.25.124:30777/xcn-dedicated-bearer/v1/bearers/delete \
   -H 'Content-Type: application/json' \
   -d '{"ueIp":"10.60.0.3"}'
+```
+
+Query XCN-created dedicated bearers for a target session:
+
+```bash
+curl --http2-prior-knowledge -sS -i \
+  'http://192.168.25.124:30777/xcn-dedicated-bearer/v1/bearers?ueIp=10.60.0.3'
+
+curl --http2-prior-knowledge -sS -i \
+  'http://192.168.25.124:30777/xcn-dedicated-bearer/v1/bearers?ngapId=1'
+
+curl --http2-prior-knowledge -sS -i \
+  'http://192.168.25.124:30777/xcn-dedicated-bearer/v1/bearers?supi=imsi-460110000000100&pduSessionId=1'
 ```
 
 Expected logs after creation:

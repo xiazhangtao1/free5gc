@@ -74,3 +74,7 @@ func (c *Consumer) UpdatePCFBinding(bindingId string, smPolicyData *pcf_context.
 func (c *Consumer) DeletePCFBinding(bindingId string) error {
 	return c.nbsfService.DeletePCFBinding(bindingId)
 }
+
+func (c *Consumer) GetRegisteredUEContextsFromOAM() ([]OAMUEContext, error) {
+	return c.namfService.GetRegisteredUEContextsFromOAM()
+}

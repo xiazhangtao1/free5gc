@@ -18,12 +18,16 @@ type PduSession struct {
 	Sst          string
 	Sd           string
 	Dnn          string
+	AmfUeNgapId  int64
+	RanUeNgapId  int64
 }
 
 type UEContext struct {
-	AccessType models.AccessType
-	Supi       string
-	Guti       string
+	AccessType  models.AccessType
+	Supi        string
+	Guti        string
+	AmfUeNgapId int64
+	RanUeNgapId int64
 	/* Tai */
 	Mcc string
 	Mnc string
@@ -103,6 +107,10 @@ func (p *Processor) buildUEContext(ue *context.AmfUe, accessType models.AccessTy
 			Mnc:        ue.Tai.PlmnId.Mnc,
 			Tac:        ue.Tai.Tac,
 		}
+		if ranUe := ue.RanUe[accessType]; ranUe != nil {
+			ueContext.AmfUeNgapId = ranUe.AmfUeNgapId
+			ueContext.RanUeNgapId = ranUe.RanUeNgapId
+		}
 
 		ue.SmContextList.Range(func(key, value interface{}) bool {
 			smContext := value.(*context.SmContext)
@@ -113,6 +121,8 @@ func (p *Processor) buildUEContext(ue *context.AmfUe, accessType models.AccessTy
 					Sst:          strconv.Itoa(int(smContext.Snssai().Sst)),
 					Sd:           smContext.Snssai().Sd,
 					Dnn:          smContext.Dnn(),
+					AmfUeNgapId:  ueContext.AmfUeNgapId,
+					RanUeNgapId:  ueContext.RanUeNgapId,
 				}
 				ueContext.PduSessions = append(ueContext.PduSessions, pduSession)
 			}
