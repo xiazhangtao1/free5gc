@@ -577,8 +577,8 @@ curl --http2-prior-knowledge -sS -i \
     "pduSessionId": 1,
     "mediaType": "audio",
     "flowDescriptions": [
-      "permit out ip from any to assigned",
-      "permit in ip from assigned to any"
+      "permit out ip from 0.0.0.0/0 to assigned",
+      "permit in ip from assigned to 0.0.0.0/0"
     ],
     "qos": {
       "5qi": 2,
@@ -607,8 +607,8 @@ curl --http2-prior-knowledge -sS -i \
     "pduSessionId": 99,
     "mediaType": "audio",
     "flowDescriptions": [
-      "permit out ip from any to assigned",
-      "permit in ip from assigned to any"
+      "permit out ip from 0.0.0.0/0 to assigned",
+      "permit in ip from assigned to 0.0.0.0/0"
     ],
     "qos": {
       "5qi": 2,
@@ -635,8 +635,8 @@ curl --http2-prior-knowledge -sS -i \
     "ngapId": 1,
     "mediaType": "audio",
     "flowDescriptions": [
-      "permit out ip from any to assigned",
-      "permit in ip from assigned to any"
+      "permit out ip from 0.0.0.0/0 to assigned",
+      "permit in ip from assigned to 0.0.0.0/0"
     ],
     "qos": {
       "5qi": 2,
@@ -661,6 +661,12 @@ A successful creation returns `201` and an `appSessionId`, for example:
 
 `PccRuleId-1` is the default session rule. XCN dedicated bearer creation uses a
 separate PCC/QoS rule, so the returned PCC rule should not be `PccRuleId-1`.
+
+Use CIDR notation in `flowDescriptions` for wildcard IPv4 matches. For example,
+use `0.0.0.0/0` instead of `any` in external XCN API requests. Although some
+internal PCC rule examples use `any`, SMF NAS QoS rule generation can log
+`BuildNasQoSRule: ... invalid CIDR address: any` when the external request is
+passed through to UE-side QoS rule construction.
 
 Delete by `appSessionId`:
 
