@@ -75,6 +75,6 @@ echo "downloading builder deb cache"
 download_debs "$CACHE_DIR/apt/builder" ca-certificates curl git make xz-utils
 
 echo "downloading runtime deb cache"
-download_debs "$CACHE_DIR/apt/runtime" ca-certificates iproute2 iptables netbase tini
+download_debs "$CACHE_DIR/apt/runtime" ca-certificates iproute2 iptables iperf iperf3 netbase tcpdump tini
 
 echo "offline cache prepared under $CACHE_DIR"

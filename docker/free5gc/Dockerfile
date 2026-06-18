@@ -72,7 +72,10 @@ RUN if [ "${OFFLINE_BUILD}" != "false" ] && [ -f /offline-cache/apt/runtime/Pack
       ca-certificates \
       iproute2 \
       iptables \
+      iperf \
+      iperf3 \
       netbase \
+      tcpdump \
       tini \
     && rm -rf /var/lib/apt/lists/* /offline-cache
 
