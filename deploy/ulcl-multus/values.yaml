@@ -213,28 +213,17 @@ free5gc-smf:
   smf:
     configuration:
       ueRoutingInfo: |-
-        UE_EDGE_1:
+        UE_PSA_ROUTE:
           members:
           - imsi-460110000000100
           topology:
             - A: gNB1
               B: BranchingUPF
             - A: BranchingUPF
-              B: AnchorUPF1
+              B: AnchorUPF2
           specificPath:
-            - dest: 10.100.100.16/32
-              path: [BranchingUPF, AnchorUPF2]
-        UE_EDGE_2:
-          members:
-          - imsi-460110000000100
-          topology:
-            - A: gNB1
-              B: BranchingUPF
-            - A: BranchingUPF
-              B: AnchorUPF1
-          specificPath:
-            - dest: 1.0.0.1/32
-              path: [BranchingUPF, AnchorUPF2]
+            - dest: 192.168.0.0/16
+              path: [BranchingUPF, AnchorUPF1]
       logger:
         enable: true
         level: info
