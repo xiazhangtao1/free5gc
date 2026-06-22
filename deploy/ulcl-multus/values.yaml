@@ -220,10 +220,12 @@ free5gc-smf:
             - A: gNB1
               B: BranchingUPF
             - A: BranchingUPF
-              B: AnchorUPF2
+              B: AnchorUPF1
+          # Default traffic uses AnchorUPF1. The 192.168.0.0/16 prefix is
+          # steered to AnchorUPF2 so each N6 path can keep symmetric NAT.
           specificPath:
             - dest: 192.168.0.0/16
-              path: [BranchingUPF, AnchorUPF1]
+              path: [BranchingUPF, AnchorUPF2]
       logger:
         enable: true
         level: info

@@ -48,6 +48,7 @@ data:
 {{- end }}
       nrfUri: {{ $.Values.global.sbi.scheme }}://{{ $.Values.global.nrf.service.name }}:{{ $.Values.global.nrf.service.port }}
       nrfCertPem: ./cert/nrf.pem # NRF Certificate
+      ulcl: {{ eq $.Values.global.userPlaneArchitecture "ulcl" }}
       {{- .configuration.urrConfiguration | nindent 6 }}
       pfcp:
 {{- if $.Values.global.smf.multus.enabled }}
@@ -117,7 +118,7 @@ data:
                 dnnUpfInfoList:
                   - dnn: {{ $.Values.global.dnn }}
                     pools:
-                    - cidr: 10.60.0.0/17
+                    - cidr: {{ $.Values.global.uesubnet }}
             interfaces:
               - interfaceType: N9
                 endpoints:
@@ -133,8 +134,6 @@ data:
                   sd: {{ $.Values.global.snssai.sd }}
                 dnnUpfInfoList:
                   - dnn: {{ $.Values.global.dnn }}
-                    pools:
-                    - cidr: 10.60.128.0/17
             interfaces:
               - interfaceType: N9
                 endpoints:
