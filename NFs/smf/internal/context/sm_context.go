@@ -687,6 +687,9 @@ func (c *SMContext) CreatePccRuleDataPath(pccRule *PCCRule,
 	}
 	createdUpPath := GetUserPlaneInformation().GetDefaultUserPlanePathByDNN(param)
 	createdDataPath := GenerateDataPath(createdUpPath)
+	if targetRoute.Dnai == "" {
+		createdDataPath = c.matchPccRulePreConfigDataPath(pccRule, createdDataPath)
+	}
 	if createdDataPath == nil {
 		return fmt.Errorf("fail to create data path for pcc rule[%s]", pccRule.PccRuleId)
 	}
@@ -715,6 +718,122 @@ func (c *SMContext) CreatePccRuleDataPath(pccRule *PCCRule,
 		c.AddQosFlow(pccRule.QFI, qosData)
 	}
 	return nil
+}
+
+func (c *SMContext) matchPccRulePreConfigDataPath(pccRule *PCCRule, fallback *DataPath) *DataPath {
+	remoteNet := pccRuleRemoteIPNet(pccRule)
+	if remoteNet == nil {
+		return fallback
+	}
+
+	if path := matchDataPathByDestination(c.Tunnel.DataPathPool, remoteNet); path != nil {
+		c.Log.Infof("PCC rule[%s] matched ULCL path destination[%s]", pccRule.PccRuleId, path.Destination.DestinationIP)
+		return clonePccRuleDataPath(path)
+	}
+
+	if GetSelf().ULCLSupport && CheckUEHasPreConfig(c.Supi) && c.SelectedUPF != nil {
+		uePreConfigPaths := GetUEPreConfigPaths(c.Supi, c.SelectedUPF.Name)
+		if path := matchDataPathByDestination(uePreConfigPaths.DataPathPool, remoteNet); path != nil {
+			c.Log.Infof("PCC rule[%s] matched pre-config ULCL path destination[%s]", pccRule.PccRuleId, path.Destination.DestinationIP)
+			return clonePccRuleDataPath(path)
+		}
+	}
+
+	return fallback
+}
+
+func pccRuleRemoteIPNet(pccRule *PCCRule) *net.IPNet {
+	if pccRule == nil {
+		return nil
+	}
+
+	return remoteIPNetFromFlowDescription(pccRule.FlowDescription())
+}
+
+func remoteIPNetFromFlowDescription(flowDescription string) *net.IPNet {
+	fields := strings.Fields(flowDescription)
+	for i, field := range fields {
+		if !strings.EqualFold(field, "from") || i+3 >= len(fields) || !strings.EqualFold(fields[i+2], "to") {
+			continue
+		}
+
+		src := fields[i+1]
+		dst := fields[i+3]
+		switch {
+		case isAssignedEndpoint(dst):
+			return parseFlowEndpointIPNet(src)
+		case isAssignedEndpoint(src):
+			return parseFlowEndpointIPNet(dst)
+		}
+	}
+
+	return nil
+}
+
+func isAssignedEndpoint(endpoint string) bool {
+	return strings.EqualFold(endpoint, "assigned")
+}
+
+func parseFlowEndpointIPNet(endpoint string) *net.IPNet {
+	if endpoint == "" || strings.EqualFold(endpoint, "any") || endpoint == "0.0.0.0/0" || endpoint == "::/0" {
+		return nil
+	}
+
+	if ip, ipNet, err := net.ParseCIDR(endpoint); err == nil {
+		ipNet.IP = ip
+		return ipNet
+	}
+
+	if ip := net.ParseIP(endpoint); ip != nil {
+		bits := 128
+		if ip.To4() != nil {
+			bits = 32
+		}
+		return &net.IPNet{
+			IP:   ip,
+			Mask: net.CIDRMask(bits, bits),
+		}
+	}
+
+	return nil
+}
+
+func matchDataPathByDestination(pool DataPathPool, remoteNet *net.IPNet) *DataPath {
+	if remoteNet == nil {
+		return nil
+	}
+
+	for _, path := range pool {
+		if path == nil || path.IsDefaultPath {
+			continue
+		}
+		destNet := parseFlowEndpointIPNet(path.Destination.DestinationIP)
+		if ipNetOverlap(remoteNet, destNet) {
+			return path
+		}
+	}
+
+	return nil
+}
+
+func ipNetOverlap(a, b *net.IPNet) bool {
+	if a == nil || b == nil {
+		return false
+	}
+
+	return a.Contains(b.IP) || b.Contains(a.IP)
+}
+
+func clonePccRuleDataPath(source *DataPath) *DataPath {
+	if source == nil {
+		return nil
+	}
+
+	return &DataPath{
+		Destination:       source.Destination,
+		HasBranchingPoint: source.HasBranchingPoint,
+		FirstDPNode:       source.CopyFirstDPNode(),
+	}
 }
 
 func (c *SMContext) CreateDcPccRuleDataPathOnDcTunnel(pccRule *PCCRule,
