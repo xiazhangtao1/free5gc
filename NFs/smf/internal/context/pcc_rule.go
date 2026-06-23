@@ -238,48 +238,49 @@ func createNasPacketFilter(
 		}
 	}
 
-	if ipFilterRule.Dst != "assigned" {
-		_, ipNet, errParseCIDR := net.ParseCIDR(ipFilterRule.Dst)
+	localIP, remoteIP, localP, remoteP := nasLocalRemoteFilter(ipFilterRule, srcP, dstP)
+	if !isAnyOrAssignedEndpoint(localIP) {
+		ipNet, errParseCIDR := parseNASIPv4CIDR(localIP)
 		if errParseCIDR != nil {
-			return nil, fmt.Errorf("parse IP fail: %s", errParseCIDR)
+			return nil, fmt.Errorf("parse local IP fail: %s", errParseCIDR)
 		}
 		pfComponents = append(pfComponents, &nasType.PacketFilterIPv4LocalAddress{
 			Address: ipNet.IP.To4(),
 			Mask:    ipNet.Mask,
 		})
 	}
-	if dstP != nil {
-		if dstP.Start != dstP.End {
+	if localP != nil {
+		if localP.Start != localP.End {
 			pfComponents = append(pfComponents, &nasType.PacketFilterLocalPortRange{
-				LowLimit:  dstP.Start,
-				HighLimit: dstP.End,
+				LowLimit:  localP.Start,
+				HighLimit: localP.End,
 			})
-		} else if dstP.Start != 0 && dstP.End != 0 {
+		} else if localP.Start != 0 && localP.End != 0 {
 			pfComponents = append(pfComponents, &nasType.PacketFilterSingleLocalPort{
-				Value: dstP.Start,
+				Value: localP.Start,
 			})
 		}
 	}
 
-	if ipFilterRule.Src != "any" {
-		_, ipNet, errParseCIDR := net.ParseCIDR(ipFilterRule.Src)
+	if !isAnyOrAssignedEndpoint(remoteIP) {
+		ipNet, errParseCIDR := parseNASIPv4CIDR(remoteIP)
 		if errParseCIDR != nil {
-			return nil, fmt.Errorf("parse IP fail: %s", errParseCIDR)
+			return nil, fmt.Errorf("parse remote IP fail: %s", errParseCIDR)
 		}
 		pfComponents = append(pfComponents, &nasType.PacketFilterIPv4RemoteAddress{
 			Address: ipNet.IP.To4(),
 			Mask:    ipNet.Mask,
 		})
 	}
-	if srcP != nil {
-		if srcP.Start != srcP.End {
+	if remoteP != nil {
+		if remoteP.Start != remoteP.End {
 			pfComponents = append(pfComponents, &nasType.PacketFilterRemotePortRange{
-				LowLimit:  srcP.Start,
-				HighLimit: srcP.End,
+				LowLimit:  remoteP.Start,
+				HighLimit: remoteP.End,
 			})
-		} else if srcP.Start != 0 && srcP.End != 0 {
+		} else if remoteP.Start != 0 && remoteP.End != 0 {
 			pfComponents = append(pfComponents, &nasType.PacketFilterSingleRemotePort{
-				Value: srcP.Start,
+				Value: remoteP.Start,
 			})
 		}
 	}
@@ -296,6 +297,42 @@ func createNasPacketFilter(
 
 	pf.Components = pfComponents
 	return pf, nil
+}
+
+func nasLocalRemoteFilter(
+	ipFilterRule *flowdesc.IPFilterRule,
+	srcP *flowdesc.PortRange,
+	dstP *flowdesc.PortRange,
+) (localIP, remoteIP string, localP, remoteP *flowdesc.PortRange) {
+	src := ipFilterRule.Src
+	dst := ipFilterRule.Dst
+
+	switch {
+	case isAssignedEndpoint(src):
+		return src, dst, srcP, dstP
+	case isAssignedEndpoint(dst):
+		return dst, src, dstP, srcP
+	default:
+		return dst, src, dstP, srcP
+	}
+}
+
+func isAnyOrAssignedEndpoint(endpoint string) bool {
+	return endpoint == "" || endpoint == "any" || endpoint == "0.0.0.0/0" || endpoint == "::/0" ||
+		isAssignedEndpoint(endpoint)
+}
+
+func parseNASIPv4CIDR(endpoint string) (*net.IPNet, error) {
+	ip, ipNet, err := net.ParseCIDR(endpoint)
+	if err != nil {
+		return nil, err
+	}
+	ip4 := ip.To4()
+	if ip4 == nil {
+		return nil, fmt.Errorf("non-IPv4 address: %s", endpoint)
+	}
+	ipNet.IP = ip4
+	return ipNet, nil
 }
 
 func BuildNASPacketFiltersFromFlowInformation(pfInfo *models.FlowInformation,
