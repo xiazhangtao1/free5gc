@@ -89,6 +89,14 @@ func OpenGtp5gLink(mux *nl.Mux, addr string, mtu uint32, log *logrus.Entry) (*Gt
 		})
 	}
 
+	if oldLink, err := gtp5gnl.GetLink("upfgtp"); err == nil && oldLink != nil {
+		log.Warnf("remove existing gtp5g link %q before recreate", "upfgtp")
+		if err := rtnllink.Remove(g.client, "upfgtp"); err != nil {
+			g.Close()
+			return nil, errors.Wrap(err, "remove existing link")
+		}
+	}
+
 	err = rtnllink.Create(g.client, "upfgtp", attrs...)
 	if err != nil {
 		g.Close()
