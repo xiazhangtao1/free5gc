@@ -19,6 +19,9 @@ Default N6 layout in this overlay:
 
 - Center DN: `psaupf1 n6 = 10.100.100.12/24`, gateway `10.100.100.1`.
 - Edge DN: `psaupf2 n6 = 10.100.200.12/24`, gateway `10.100.200.1`.
+- Default edge destinations: `192.168.0.0/16`, `10.96.95.158/32`,
+  and `10.105.151.134/32` are steered to `psaupf2`; all other traffic
+  uses `psaupf1`.
 - UE address pool: `10.60.0.0/16`. Both PSA UPFs install this pool locally;
   UL-CL chooses the PSA by SMF path selection and destination-specific
   `ueRoutingInfo`, not by assigning disjoint UE address pools per PSA.

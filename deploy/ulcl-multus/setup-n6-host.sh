@@ -16,7 +16,7 @@ N6_CENTER_SUBNET=${N6_CENTER_SUBNET:-10.100.100.0/24}
 N6_EDGE_SUBNET=${N6_EDGE_SUBNET:-10.100.200.0/24}
 N6_OUT_IF=${N6_OUT_IF:-}
 N6_POLICY_SNAT=${N6_POLICY_SNAT:-true}
-N6_EDGE_DEST_SUBNET=${N6_EDGE_DEST_SUBNET:-192.168.0.0/16}
+N6_EDGE_DESTS=${N6_EDGE_DESTS:-${N6_EDGE_DEST_SUBNET:-"192.168.0.0/16 10.96.95.158/32 10.105.151.134/32"}}
 N6_CENTER_MARK=${N6_CENTER_MARK:-0x1}
 N6_EDGE_MARK=${N6_EDGE_MARK:-0x2}
 N6_CENTER_TABLE=${N6_CENTER_TABLE:-6101}
@@ -73,7 +73,9 @@ if [[ "$N6_POLICY_SNAT" == "true" ]]; then
   sudo iptables -t mangle -C PREROUTING -j XCN_N6_MARK 2>/dev/null || \
     sudo iptables -t mangle -A PREROUTING -j XCN_N6_MARK
   sudo iptables -t mangle -A XCN_N6_MARK -j CONNMARK --restore-mark
-  sudo iptables -t mangle -A XCN_N6_MARK -i "$N6_EDGE_IF" -s "$UE_SUBNET" -d "$N6_EDGE_DEST_SUBNET" -j MARK --set-mark "$N6_EDGE_MARK"
+  for edge_dest in $N6_EDGE_DESTS; do
+    sudo iptables -t mangle -A XCN_N6_MARK -i "$N6_EDGE_IF" -s "$UE_SUBNET" -d "$edge_dest" -j MARK --set-mark "$N6_EDGE_MARK"
+  done
   sudo iptables -t mangle -A XCN_N6_MARK -i "$N6_CENTER_IF" -s "$UE_SUBNET" -j MARK --set-mark "$N6_CENTER_MARK"
   sudo iptables -t mangle -A XCN_N6_MARK -m mark ! --mark 0 -j CONNMARK --save-mark
 
