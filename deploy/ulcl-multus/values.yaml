@@ -219,6 +219,10 @@ free5gc-smf:
         cpu: 500m
         memory: 1Gi
     configuration:
+      urrConfiguration: |-
+        urrPeriod: 3600
+        urrThreshold: 104857600
+        requestedUnit: 104857600
       ueRoutingInfo: |-
         UE_PSA_ROUTE:
           members:
