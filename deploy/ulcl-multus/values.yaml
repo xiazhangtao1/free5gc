@@ -211,6 +211,13 @@ free5gc-pcf:
 
 free5gc-smf:
   smf:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
     configuration:
       ueRoutingInfo: |-
         UE_PSA_ROUTE:
