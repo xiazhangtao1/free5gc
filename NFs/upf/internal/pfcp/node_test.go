@@ -1,6 +1,7 @@
 package pfcp
 
 import (
+	"net"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -236,5 +237,23 @@ func TestLocalNode(t *testing.T) {
 		recycleLocalID := 1
 		assert.Equal(t, uint64(recycleLocalID), sess.LocalID)
 		assert.Equal(t, uint64(10), sess.RemoteID)
+	})
+
+	t.Run("remote session skips deleted local session", func(t *testing.T) {
+		lnode := LocalNode{}
+		addr := &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 8805}
+		rnode := NewRemoteNode(
+			"smf1",
+			addr,
+			&lnode,
+			forwarder.Empty{},
+			logger.PfcpLog.WithField(logger_util.FieldControlPlaneNodeID, "smf1"),
+		)
+
+		sess := rnode.NewSess(10)
+		rnode.DeleteSess(sess.LocalID)
+
+		_, err := lnode.RemoteSess(10, addr)
+		assert.NotNil(t, err)
 	})
 }
