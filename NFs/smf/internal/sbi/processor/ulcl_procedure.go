@@ -227,18 +227,11 @@ func EstablishULCL(smContext *context.SMContext) error {
 			DownLinkPDR := curDPNode.DownLinkTunnel.PDR
 			UPLinkPDR.State = context.RULE_INITIAL
 
-			// new IPFilterRule with action:"permit" and direction:"out"
-			FlowDespcription := flowdesc.NewIPFilterRule()
-			FlowDespcription.Src = dest.DestinationIP
-			if dstPort, err := flowdesc.ParsePorts(dest.DestinationPort); err != nil {
-				FlowDespcription.SrcPorts = dstPort
-			}
-			FlowDespcription.Dst = smContext.PDUAddress.To4().String()
-
-			FlowDespcriptionStr, err := flowdesc.Encode(FlowDespcription)
+			FlowDespcriptionStr, err := buildULCLUpLinkFlowDescription(smContext.PDUAddress, dest)
 			if err != nil {
 				logger.PduSessLog.Errorf("Error occurs when encoding flow despcription: %s\n", err)
 			}
+			logger.PduSessLog.Infof("ULCL uplink flow description: %s", FlowDespcriptionStr)
 
 			UPLinkPDR.PDI.SDFFilter = &pfcpType.SDFFilter{
 				Bid:                     false,
@@ -382,18 +375,11 @@ func UpdateRANAndIUPFUpLink(smContext *context.SMContext) {
 
 			if _, exist := bpMGR.UpdatedBranchingPoint[curDPNode.UPF]; exist {
 				// add SDF Filter
-				// new IPFilterRule with action:"permit" and direction:"out"
-				FlowDespcription := flowdesc.NewIPFilterRule()
-				FlowDespcription.Src = dest.DestinationIP
-				if dstPort, err := flowdesc.ParsePorts(dest.DestinationPort); err != nil {
-					FlowDespcription.SrcPorts = dstPort
-				}
-				FlowDespcription.Dst = smContext.PDUAddress.To4().String()
-
-				FlowDespcriptionStr, err := flowdesc.Encode(FlowDespcription)
+				FlowDespcriptionStr, err := buildULCLUpLinkFlowDescription(smContext.PDUAddress, dest)
 				if err != nil {
 					logger.PduSessLog.Errorf("Error occurs when encoding flow despcription: %s\n", err)
 				}
+				logger.PduSessLog.Infof("ULCL uplink flow description: %s", FlowDespcriptionStr)
 
 				UPLinkPDR.PDI.SDFFilter = &pfcpType.SDFFilter{
 					Bid:                     false,
@@ -430,4 +416,16 @@ func UpdateRANAndIUPFUpLink(smContext *context.SMContext) {
 	bpMGR.AddingPSAState = context.Finished
 	bpMGR.BPStatus = context.AddPSASuccess
 	logger.CtxLog.Infoln("[SMF] Add PSA success")
+}
+
+func buildULCLUpLinkFlowDescription(pduAddress net.IP, dest context.Destination) (string, error) {
+	filter := flowdesc.NewIPFilterRule()
+	// UPF swaps flow description endpoints for Access-side PDRs before installing
+	// them into gtp5g, so encode the PFCP SDF filter in the pre-swap form.
+	filter.Src = dest.DestinationIP
+	if dstPort, err := flowdesc.ParsePorts(dest.DestinationPort); err == nil {
+		filter.SrcPorts = dstPort
+	}
+	filter.Dst = pduAddress.To4().String()
+	return flowdesc.Encode(filter)
 }
